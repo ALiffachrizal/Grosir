@@ -9,14 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table) {
-            $table->id();
+            $table->bigIncrements('id');
+            $table->string('kode_produk', 10)->unique()->nullable();
             $table->string('name');
             $table->string('category', 100);
-
-            // VARCHAR bukan ENUM agar fleksibel
-            // Validasi hardcoded di Controller: ['PCS','BOTOL','LITER','KG']
             $table->string('base_unit', 20);
-
             $table->integer('items_per_package')->default(1);
             $table->integer('items_per_bundle')->nullable()->default(1);
             $table->integer('stock')->default(0);

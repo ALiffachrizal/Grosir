@@ -24,9 +24,10 @@ class ReportController extends Controller
             ->orderBy('name')
             ->get();
 
-        $lowStockCount = $products->filter(fn($p) => $p->stok_menipis)->count();
+        $lowStockCount     = $products->filter(fn($p) => $p->stok_menipis)->count();
+        $productCategories = \App\Models\Category::product()->orderBy('name')->get();
 
-        return view('reports.stock', compact('products', 'lowStockCount'));
+        return view('reports.stock', compact('products', 'lowStockCount', 'productCategories'));
     }
 
     /**
@@ -68,9 +69,13 @@ class ReportController extends Controller
                     ? Carbon::parse($request->date_to)
                     : Carbon::now()->endOfMonth();
                 break;
+            default:
+                $dateFrom = Carbon::now()->startOfMonth();
+                $dateTo   = Carbon::now()->endOfMonth();
+                break;
         }
 
-        $sales = Sale::with(['details.product', 'user', 'refunds'])
+        $sales = Sale::with(['details.product', 'user', 'refunds.product'])
             ->whereBetween('date', [
                 $dateFrom->toDateString(),
                 $dateTo->toDateString(),
@@ -78,19 +83,38 @@ class ReportController extends Controller
             ->latest()
             ->get();
 
-        $totalSales     = $sales->sum('total_price');
-        $totalRefunds   = Refund::whereHas('sale', function ($q) use ($dateFrom, $dateTo) {
-            $q->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
-        })->count();
-        $totalRefundQty = Refund::whereHas('sale', function ($q) use ($dateFrom, $dateTo) {
-            $q->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
-        })->sum('quantity');
-        $netRevenue     = $totalSales;
+        // Total penjualan kotor
+        $totalSales = $sales->sum('total_price');
+
+        // Hitung total nominal refund (qty x harga saat transaksi)
+        $totalRefundNominal = 0;
+        foreach ($sales as $sale) {
+            foreach ($sale->refunds as $refund) {
+                $saleDetail = $sale->details
+                    ->where('kode_produk', $refund->kode_produk)
+                    ->first();
+                if ($saleDetail) {
+                    $totalRefundNominal += $refund->quantity * $saleDetail->unit_price;
+                }
+            }
+        }
+
+        $totalRefunds   = $sales->sum(fn($s) => $s->refunds->count());
+        $totalRefundQty = $sales->sum(fn($s) => $s->refunds->sum('quantity'));
+
+        // Penjualan bersih = kotor - nominal refund
+        $netRevenue = $totalSales - $totalRefundNominal;
 
         return view('reports.sales', compact(
-            'sales', 'totalSales', 'totalRefunds',
-            'totalRefundQty', 'netRevenue',
-            'filter', 'dateFrom', 'dateTo'
+            'sales',
+            'totalSales',
+            'totalRefunds',
+            'totalRefundQty',
+            'totalRefundNominal',
+            'netRevenue',
+            'filter',
+            'dateFrom',
+            'dateTo'
         ));
     }
 
@@ -103,7 +127,7 @@ class ReportController extends Controller
         $dateFrom = $this->getDateFrom($filter, $request->date_from);
         $dateTo   = $this->getDateTo($filter, $request->date_to);
 
-        $sales = Sale::with(['details.product', 'user', 'refunds'])
+        $sales = Sale::with(['details.product', 'user', 'refunds.product'])
             ->whereBetween('date', [
                 $dateFrom->toDateString(),
                 $dateTo->toDateString(),
@@ -111,19 +135,33 @@ class ReportController extends Controller
             ->latest()
             ->get();
 
-        $totalSales     = $sales->sum('total_price');
-        $totalRefunds   = Refund::whereHas('sale', function ($q) use ($dateFrom, $dateTo) {
-            $q->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
-        })->count();
-        $totalRefundQty = Refund::whereHas('sale', function ($q) use ($dateFrom, $dateTo) {
-            $q->whereBetween('date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
-        })->sum('quantity');
-        $netRevenue     = $totalSales;
+        $totalSales         = $sales->sum('total_price');
+        $totalRefundNominal = 0;
+
+        foreach ($sales as $sale) {
+            foreach ($sale->refunds as $refund) {
+                $saleDetail = $sale->details
+                    ->where('kode_produk', $refund->kode_produk)
+                    ->first();
+                if ($saleDetail) {
+                    $totalRefundNominal += $refund->quantity * $saleDetail->unit_price;
+                }
+            }
+        }
+
+        $totalRefunds   = $sales->sum(fn($s) => $s->refunds->count());
+        $totalRefundQty = $sales->sum(fn($s) => $s->refunds->sum('quantity'));
+        $netRevenue     = $totalSales - $totalRefundNominal;
 
         $pdf = Pdf::loadView('reports.sales-pdf', compact(
-            'sales', 'totalSales', 'totalRefunds',
-            'totalRefundQty', 'netRevenue',
-            'dateFrom', 'dateTo'
+            'sales',
+            'totalSales',
+            'totalRefunds',
+            'totalRefundQty',
+            'totalRefundNominal',
+            'netRevenue',
+            'dateFrom',
+            'dateTo'
         ))->setPaper('a4', 'landscape');
 
         $filename = 'laporan-penjualan-' . $dateFrom->format('Y-m-d') . '-sd-' . $dateTo->format('Y-m-d') . '.pdf';

@@ -11,7 +11,7 @@ class StockLog extends Model
     use HasFactory;
 
     protected $fillable = [
-        'product_id',
+        'kode_produk',
         'user_id',
         'type',
         'quantity',
@@ -20,29 +20,16 @@ class StockLog extends Model
         'note',
     ];
 
-    // ==================== RELASI ====================
-
-    /**
-     * Log merujuk ke satu produk
-     */
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'kode_produk', 'kode_produk');
     }
 
-    /**
-     * Log dicatat oleh seorang user
-     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // ==================== ACCESSOR ====================
-
-    /**
-     * Label tipe log dalam Bahasa Indonesia
-     */
     public function getTypeLabelAttribute(): string
     {
         return match($this->type) {
@@ -53,9 +40,6 @@ class StockLog extends Model
         };
     }
 
-    /**
-     * Warna badge tipe untuk Tailwind CSS
-     */
     public function getTypeColorAttribute(): string
     {
         return match($this->type) {
@@ -66,15 +50,13 @@ class StockLog extends Model
         };
     }
 
-    /**
-     * Label referensi transaksi
-     */
     public function getReferenceLabelAttribute(): string
     {
         return match($this->reference_type) {
             'purchase_order' => 'PO #' . $this->reference_id,
             'sale'           => 'Penjualan #' . $this->reference_id,
             'refund'         => 'Refund #' . $this->reference_id,
+            'initial_stock'  => 'Stok Awal',
             default          => ucfirst($this->reference_type) . ' #' . $this->reference_id,
         };
     }

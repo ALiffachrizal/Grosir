@@ -18,7 +18,8 @@
             <div class="p-4">
                 <input type="text" x-model="search"
                        placeholder="Cari produk..."
-                       class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                       class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm
+                              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
 
             {{-- Tabs Kategori --}}
@@ -31,7 +32,7 @@
                             class="px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all">
                         Semua
                     </button>
-                    <template x-for="cat in categories" :key="cat.id">
+                    <template x-for="cat in categories" :key="cat.kode_kategori">
                         <button @click="selectedCategory = cat.name"
                                 :class="selectedCategory === cat.name
                                     ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
@@ -46,13 +47,13 @@
             {{-- Grid Produk --}}
             <div class="flex-1 overflow-y-auto px-4 pb-4">
                 <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                    <template x-for="product in filteredProducts" :key="product.id">
+                    <template x-for="product in filteredProducts" :key="product.kode_produk">
                         <div @click="openModal(product)"
                              class="bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer
                                     hover:border-blue-300 hover:shadow-lg hover:shadow-blue-50
                                     transition-all duration-200 group">
-                            <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3
-                                        group-hover:bg-blue-100 transition-colors">
+                            <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center
+                                        mx-auto mb-3 group-hover:bg-blue-100 transition-colors">
                                 <span class="text-2xl" x-text="getCategoryIcon(product.category)"></span>
                             </div>
                             <p class="text-sm font-semibold text-gray-800 text-center leading-tight mb-1"
@@ -84,7 +85,8 @@
                         <span class="text-xl">🛒</span>
                         <h3 class="font-bold text-gray-800">Keranjang</h3>
                         <span x-show="cart.length > 0"
-                              class="bg-blue-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
+                              class="bg-blue-600 text-white text-xs font-bold w-5 h-5 rounded-full
+                                     flex items-center justify-center"
                               x-text="cart.length"></span>
                     </div>
                     <button @click="clearCart()" x-show="cart.length > 0"
@@ -111,12 +113,15 @@
                         <div class="bg-gray-50 rounded-xl p-3">
                             <div class="flex items-start justify-between gap-2 mb-2">
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-semibold text-gray-800 truncate" x-text="item.name"></p>
-                                    <p class="text-xs text-gray-400 mt-0.5" x-text="item.description"></p>
+                                    <p class="text-sm font-semibold text-gray-800 truncate"
+                                       x-text="item.name"></p>
+                                    <p class="text-xs text-gray-400 mt-0.5"
+                                       x-text="item.description"></p>
                                 </div>
                                 <button @click="removeFromCart(index)"
-                                        class="w-5 h-5 rounded-full bg-red-100 hover:bg-red-200 text-red-500
-                                               flex items-center justify-center text-xs transition shrink-0">
+                                        class="w-5 h-5 rounded-full bg-red-100 hover:bg-red-200
+                                               text-red-500 flex items-center justify-center
+                                               text-xs transition shrink-0">
                                     ✕
                                 </button>
                             </div>
@@ -159,16 +164,15 @@
 
                 <div class="relative">
                     <select x-model="paymentMethod"
-                            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm
-                                   font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500
-                                   appearance-none cursor-pointer">
+                            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl
+                                   text-sm font-medium text-gray-700 focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer">
                         <option value="">Pilih Pembayaran</option>
                         <option value="cash">💵 Tunai</option>
                         <option value="transfer">🏦 Transfer</option>
                     </select>
-                    <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
-                        ▼
-                    </div>
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none
+                                text-gray-400 text-xs">▼</div>
                 </div>
 
                 <button @click="checkout()"
@@ -182,12 +186,9 @@
             </div>
 
         </div>
-        {{-- Akhir Panel Kanan --}}
-
     </div>
-    {{-- Akhir Panel Utama --}}
 
-    {{-- ===== MODAL PILIH SATUAN (di dalam x-data) ===== --}}
+    {{-- ===== MODAL PILIH SATUAN ===== --}}
     <div x-show="showModal"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
@@ -213,8 +214,10 @@
                             <span x-text="getCategoryIcon(selectedProduct?.category)"></span>
                         </div>
                         <div>
-                            <h3 class="font-bold text-gray-800 text-sm" x-text="selectedProduct?.name"></h3>
-                            <p class="text-xs text-gray-400" x-text="selectedProduct?.category"></p>
+                            <h3 class="font-bold text-gray-800 text-sm"
+                                x-text="selectedProduct?.name"></h3>
+                            <p class="text-xs text-gray-400"
+                               x-text="selectedProduct?.category"></p>
                         </div>
                     </div>
                     <button @click="showModal = false"
@@ -229,7 +232,9 @@
 
                 {{-- Pilih Satuan --}}
                 <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Pilih Satuan</p>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                        Pilih Satuan
+                    </p>
                     <div class="grid grid-cols-3 gap-2">
 
                         <button @click="selectUnit('base')"
@@ -250,7 +255,8 @@
                             <div class="text-lg mb-1">📫</div>
                             <div x-text="selectedProduct?.base_unit === 'KG' ? 'Karung' : 'Package'"></div>
                             <div class="text-xs opacity-60 mt-0.5"
-                                 x-text="selectedProduct?.items_per_package + ' ' + selectedProduct?.base_unit"></div>
+                                 x-text="selectedProduct?.items_per_package + ' ' + selectedProduct?.base_unit">
+                            </div>
                         </button>
 
                         <button @click="selectUnit('bundle')"
@@ -262,7 +268,8 @@
                             <div class="text-lg mb-1">🎁</div>
                             <div>Bundle</div>
                             <div class="text-xs opacity-60 mt-0.5"
-                                 x-text="selectedProduct?.items_per_bundle + ' ' + selectedProduct?.base_unit"></div>
+                                 x-text="selectedProduct?.items_per_bundle + ' ' + selectedProduct?.base_unit">
+                            </div>
                         </button>
 
                     </div>
@@ -274,16 +281,16 @@
                     <div class="flex items-center justify-between bg-gray-50 rounded-xl p-3">
                         <button type="button" @click="modalQty > 1 ? modalQty-- : null"
                                 class="w-10 h-10 rounded-xl bg-white border border-gray-200
-                                    hover:border-red-300 hover:bg-red-50 text-gray-700 font-bold text-xl
-                                    flex items-center justify-center shadow-sm transition select-none">
+                                       hover:border-red-300 hover:bg-red-50 text-gray-700 font-bold text-xl
+                                       flex items-center justify-center shadow-sm transition select-none">
                             −
                         </button>
                         <span class="text-2xl font-bold text-gray-800 w-16 text-center"
-                            x-text="modalQty"></span>
+                              x-text="modalQty"></span>
                         <button type="button" @click="modalQty++"
                                 class="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700
-                                    text-white font-bold text-xl
-                                    flex items-center justify-center shadow-sm transition select-none">
+                                       text-white font-bold text-xl
+                                       flex items-center justify-center shadow-sm transition select-none">
                             +
                         </button>
                     </div>
@@ -331,7 +338,6 @@
             </div>
         </div>
     </div>
-    {{-- Akhir Modal --}}
 
     {{-- Form Submit Hidden --}}
     <form id="checkout-form" action="{{ route('sales.store') }}" method="POST" style="display:none">
@@ -340,7 +346,6 @@
     </form>
 
 </div>
-{{-- Akhir x-data --}}
 
 @endsection
 
@@ -425,14 +430,14 @@ function pos(products, categories) {
             }
 
             const existing = this.cart.findIndex(
-                i => i.product_id === this.selectedProduct.id && i.description === description
+                i => i.kode_produk === this.selectedProduct.kode_produk && i.description === description
             );
 
             if (existing >= 0) {
                 this.cart[existing].quantity += this.totalUnits;
             } else {
                 this.cart.push({
-                    product_id:  this.selectedProduct.id,
+                    kode_produk: this.selectedProduct.kode_produk,
                     name:        this.selectedProduct.name,
                     quantity:    this.totalUnits,
                     unit_price:  this.selectedProduct.selling_price,
@@ -456,9 +461,9 @@ function pos(products, categories) {
         },
 
         increaseQty(index) {
-            const product = this.products.find(p => p.id === this.cart[index].product_id);
+            const product = this.products.find(p => p.kode_produk === this.cart[index].kode_produk);
             const totalInCart = this.cart
-                .filter(i => i.product_id === this.cart[index].product_id)
+                .filter(i => i.kode_produk === this.cart[index].kode_produk)
                 .reduce((sum, i) => sum + i.quantity, 0);
 
             if (totalInCart < product.stock) {
@@ -493,10 +498,10 @@ function pos(products, categories) {
 
             this.cart.forEach((item, index) => {
                 const fields = {
-                    [`items[${index}][product_id]`]:  item.product_id,
-                    [`items[${index}][quantity]`]:     item.quantity,
-                    [`items[${index}][unit_price]`]:   item.unit_price,
-                    [`items[${index}][description]`]:  item.description,
+                    [`items[${index}][kode_produk]`]: item.kode_produk,
+                    [`items[${index}][quantity]`]:    item.quantity,
+                    [`items[${index}][unit_price]`]:  item.unit_price,
+                    [`items[${index}][description]`]: item.description,
                 };
                 Object.entries(fields).forEach(([name, value]) => {
                     const input = document.createElement('input');

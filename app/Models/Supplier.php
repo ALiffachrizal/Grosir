@@ -10,28 +10,20 @@ class Supplier extends Model
 {
     use HasFactory;
 
+    // Primary key tetap id (auto increment)
+    // kode_supplier hanya sebagai kode unik
     protected $fillable = [
+        'kode_supplier',
         'name',
         'phone',
         'category',
     ];
 
-    // ==================== RELASI ====================
-
-    /**
-     * Supplier bisa punya banyak purchase order
-     */
     public function purchaseOrders(): HasMany
     {
-        return $this->hasMany(PurchaseOrder::class);
+        return $this->hasMany(PurchaseOrder::class, 'kode_supplier', 'kode_supplier');
     }
 
-    // ==================== HELPER ====================
-
-    /**
-     * Cek apakah supplier punya riwayat pemesanan
-     * Digunakan sebelum hapus supplier
-     */
     public function hasPurchaseOrders(): bool
     {
         return $this->purchaseOrders()->exists();

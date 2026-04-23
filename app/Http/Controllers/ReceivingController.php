@@ -9,9 +9,6 @@ use App\Models\StockLog;
 
 class ReceivingController extends Controller
 {
-    /**
-     * Daftar purchase order yang pending
-     */
     public function index()
     {
         $pendingOrders = PurchaseOrder::with(['supplier', 'user', 'details'])
@@ -22,29 +19,19 @@ class ReceivingController extends Controller
         return view('receiving.index', compact('pendingOrders'));
     }
 
-    /**
-     * Detail purchase order sebelum konfirmasi
-     */
     public function show(PurchaseOrder $purchaseOrder)
     {
-        // Pastikan hanya PO pending yang bisa diproses
         if ($purchaseOrder->status !== 'pending') {
             return redirect()->route('receiving.index')
                 ->with('error', 'Purchase order ini sudah diterima.');
         }
 
         $purchaseOrder->load(['supplier', 'user', 'details.product']);
-
         return view('receiving.show', compact('purchaseOrder'));
     }
 
-    /**
-     * Konfirmasi penerimaan barang
-     * Stock bertambah + status jadi received + catat stock_logs
-     */
     public function confirm(PurchaseOrder $purchaseOrder)
     {
-        // Pastikan hanya PO pending yang bisa dikonfirmasi
         if ($purchaseOrder->status !== 'pending') {
             return redirect()->route('receiving.index')
                 ->with('error', 'Purchase order ini sudah diterima.');
@@ -53,14 +40,13 @@ class ReceivingController extends Controller
         $purchaseOrder->load('details.product');
 
         DB::transaction(function () use ($purchaseOrder) {
-
             foreach ($purchaseOrder->details as $detail) {
                 // Tambah stok produk
                 $detail->product->increment('stock', $detail->quantity);
 
-                // Catat di stock_logs
+                // Catat stock log
                 StockLog::create([
-                    'product_id'     => $detail->product_id,
+                    'kode_produk'    => $detail->kode_produk,
                     'user_id'        => auth()->id(),
                     'type'           => 'in',
                     'quantity'       => $detail->quantity,
@@ -70,7 +56,6 @@ class ReceivingController extends Controller
                 ]);
             }
 
-            // Update status PO menjadi received
             $purchaseOrder->update(['status' => 'received']);
         });
 

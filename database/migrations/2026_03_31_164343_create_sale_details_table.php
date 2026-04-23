@@ -13,15 +13,13 @@ return new class extends Migration
             $table->foreignId('sale_id')
                   ->constrained('sales')
                   ->cascadeOnDelete();
-            $table->foreignId('product_id')
-                  ->constrained('products')
-                  ->restrictOnDelete(); // tidak bisa hapus produk jika ada di sale
+            $table->string('kode_produk', 10);
+            $table->foreign('kode_produk')
+                  ->references('kode_produk')
+                  ->on('products')
+                  ->restrictOnDelete();
             $table->integer('quantity');
-
-            // Snapshot harga saat transaksi (bukan ambil dari products)
             $table->decimal('unit_price', 15, 2);
-
-            // Deskripsi satuan, contoh: "1 Dus (40 PCS)"
             $table->string('description')->nullable();
             $table->timestamps();
         });

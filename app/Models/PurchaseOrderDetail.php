@@ -12,25 +12,17 @@ class PurchaseOrderDetail extends Model
 
     protected $fillable = [
         'purchase_order_id',
-        'product_id',
+        'kode_produk',
         'quantity',
     ];
 
-    // ==================== RELASI ====================
-
-    /**
-     * Detail milik satu purchase order
-     */
     public function purchaseOrder(): BelongsTo
     {
         return $this->belongsTo(PurchaseOrder::class);
     }
 
-    /**
-     * Detail merujuk ke satu produk
-     */
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'kode_produk', 'kode_produk');
     }
 }

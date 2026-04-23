@@ -13,8 +13,10 @@ return new class extends Migration
             $table->foreignId('sale_id')
                   ->constrained('sales')
                   ->restrictOnDelete();
-            $table->foreignId('product_id')
-                  ->constrained('products')
+            $table->string('kode_produk', 10);
+            $table->foreign('kode_produk')
+                  ->references('kode_produk')
+                  ->on('products')
                   ->restrictOnDelete();
             $table->foreignId('user_id')
                   ->constrained('users')

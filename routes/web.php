@@ -35,9 +35,9 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class)->except(['show']);
 
     // Kategori
-    Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
-    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
-    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
 
     // Supplier
     Route::resource('suppliers', SupplierController::class);
