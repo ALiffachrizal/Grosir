@@ -12,7 +12,7 @@ class PurchaseOrder extends Model
     use HasFactory;
 
     protected $fillable = [
-        'supplier_id',
+        'kode_supplier',
         'user_id',
         'order_date',
         'status',
@@ -25,37 +25,21 @@ class PurchaseOrder extends Model
         ];
     }
 
-    // ==================== RELASI ====================
-
-    /**
-     * Purchase order dibuat oleh seorang user
-     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Purchase order ditujukan ke seorang supplier
-     */
     public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Supplier::class, 'kode_supplier', 'kode_supplier');
     }
 
-    /**
-     * Purchase order punya banyak detail produk
-     */
     public function details(): HasMany
     {
         return $this->hasMany(PurchaseOrderDetail::class);
     }
 
-    // ==================== ACCESSOR ====================
-
-    /**
-     * Label status dalam Bahasa Indonesia
-     */
     public function getStatusLabelAttribute(): string
     {
         return match($this->status) {
@@ -65,9 +49,6 @@ class PurchaseOrder extends Model
         };
     }
 
-    /**
-     * Warna badge status untuk Tailwind CSS
-     */
     public function getStatusColorAttribute(): string
     {
         return match($this->status) {

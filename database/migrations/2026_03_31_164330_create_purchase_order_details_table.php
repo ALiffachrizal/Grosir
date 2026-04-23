@@ -13,8 +13,10 @@ return new class extends Migration
             $table->foreignId('purchase_order_id')
                   ->constrained('purchase_orders')
                   ->cascadeOnDelete();
-            $table->foreignId('product_id')
-                  ->constrained('products')
+            $table->string('kode_produk', 10);
+            $table->foreign('kode_produk')
+                  ->references('kode_produk')
+                  ->on('products')
                   ->restrictOnDelete();
             $table->integer('quantity');
             $table->timestamps();
@@ -26,5 +28,3 @@ return new class extends Migration
         Schema::dropIfExists('purchase_order_details');
     }
 };
-
-

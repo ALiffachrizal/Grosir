@@ -9,24 +9,19 @@ class Category extends Model
 {
     use HasFactory;
 
+    // Primary key tetap id (auto increment)
+    // kode_kategori hanya sebagai kode unik
     protected $fillable = [
+        'kode_kategori',
         'name',
         'type',
     ];
 
-    // ==================== SCOPE ====================
-
-    /**
-     * Hanya kategori produk
-     */
     public function scopeProduct($query)
     {
         return $query->where('type', 'product');
     }
 
-    /**
-     * Hanya kategori supplier
-     */
     public function scopeSupplier($query)
     {
         return $query->where('type', 'supplier');

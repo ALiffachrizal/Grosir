@@ -15,30 +15,32 @@ class CategorySeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $productCategories = [
-            'Sembako',
-            'Jajanan / Snack',
-            'Kebutuhan Rumah Tangga',
-            'Minuman',
+            ['kode' => 'KAT001', 'name' => 'SEMBAKO'],
+            ['kode' => 'KAT002', 'name' => 'JAJANAN / SNACK'],
+            ['kode' => 'KAT003', 'name' => 'KEBUTUHAN RUMAH TANGGA'],
+            ['kode' => 'KAT004', 'name' => 'MINUMAN'],
         ];
 
-        foreach ($productCategories as $name) {
+        foreach ($productCategories as $cat) {
             Category::create([
-                'name' => $name,
-                'type' => 'product',
+                'kode_kategori' => $cat['kode'],
+                'name'          => $cat['name'],
+                'type'          => 'product',
             ]);
         }
 
-        $supplierCategories = [
-            'Sembako',
-            'Jajanan / Snack',
-            'Kebutuhan Rumah Tangga',
-            'Minuman',
+       $supplierCategories = [
+            ['kode' => 'SUP001', 'name' => 'SEMBAKO'],
+            ['kode' => 'SUP002', 'name' => 'JAJANAN / SNACK'],
+            ['kode' => 'SUP003', 'name' => 'KEBUTUHAN RUMAH TANGGA'],
+            ['kode' => 'SUP004', 'name' => 'MINUMAN'],
         ];
 
-        foreach ($supplierCategories as $name) {
+        foreach ($supplierCategories as $cat) {
             Category::create([
-                'name' => $name,
-                'type' => 'supplier',
+                'kode_kategori' => $cat['kode'],
+                'name'          => $cat['name'],
+                'type'          => 'supplier',
             ]);
         }
 

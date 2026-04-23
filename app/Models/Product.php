@@ -10,7 +10,10 @@ class Product extends Model
 {
     use HasFactory;
 
+    // Primary key tetap id (auto increment)
+    // kode_produk hanya sebagai kode unik
     protected $fillable = [
+        'kode_produk',
         'name',
         'category',
         'base_unit',
@@ -30,89 +33,59 @@ class Product extends Model
         ];
     }
 
-    // ==================== KONSTANTA ====================
+    const BASE_UNITS_DEFAULT = ['PCS', 'BOTOL', 'LITER', 'KG'];
 
-    /**
-     * Daftar base unit yang valid (hardcoded)
-     */
-    const BASE_UNITS = ['PCS', 'BOTOL', 'LITER', 'KG'];
+    public static function getBaseUnits(): array
+    {
+        $fromDb = \App\Models\Category::where('type', 'unit')
+            ->orderBy('name')
+            ->pluck('name')
+            ->toArray();
 
-    // ==================== RELASI ====================
+        // Gabungkan bawaan + dari DB, hilangkan duplikat
+        return array_unique(array_merge(self::BASE_UNITS_DEFAULT, $fromDb));
+    }
 
-    /**
-     * Produk bisa ada di banyak detail purchase order
-     */
     public function purchaseOrderDetails(): HasMany
     {
-        return $this->hasMany(PurchaseOrderDetail::class);
+        return $this->hasMany(PurchaseOrderDetail::class, 'kode_produk', 'kode_produk');
     }
 
-    /**
-     * Produk bisa ada di banyak detail penjualan
-     */
     public function saleDetails(): HasMany
     {
-        return $this->hasMany(SaleDetail::class);
+        return $this->hasMany(SaleDetail::class, 'kode_produk', 'kode_produk');
     }
 
-    /**
-     * Produk bisa di-refund berkali-kali
-     */
     public function refunds(): HasMany
     {
-        return $this->hasMany(Refund::class);
+        return $this->hasMany(Refund::class, 'kode_produk', 'kode_produk');
     }
 
-    /**
-     * Produk tercatat di banyak stock log
-     */
     public function stockLogs(): HasMany
     {
-        return $this->hasMany(StockLog::class);
+        return $this->hasMany(StockLog::class, 'kode_produk', 'kode_produk');
     }
 
-    // ==================== ACCESSOR ====================
-
-    /**
-     * Cek apakah stok menipis (stock <= minimum_stock)
-     * Digunakan untuk badge & notifikasi sidebar
-     */
     public function getStokMenipisAttribute(): bool
     {
         return $this->stock <= $this->minimum_stock;
     }
 
-    /**
-     * Label nama satuan package
-     * Jika base_unit = KG maka label = "Karung", selainnya = "Package"
-     */
     public function getPackageLabelAttribute(): string
     {
         return $this->base_unit === 'KG' ? 'Karung' : 'Package';
     }
 
-    /**
-     * Format harga jual ke Rupiah
-     */
     public function getSellingPriceFormattedAttribute(): string
     {
         return 'Rp ' . number_format($this->selling_price, 0, ',', '.');
     }
 
-    /**
-     * Format harga beli ke Rupiah
-     */
     public function getPurchasePriceFormattedAttribute(): string
     {
         return 'Rp ' . number_format($this->purchase_price, 0, ',', '.');
     }
 
-    // ==================== HELPER ====================
-
-    /**
-     * Cek apakah produk punya riwayat transaksi
-     * Digunakan sebelum hapus produk
-     */
     public function hasTransactionHistory(): bool
     {
         return $this->purchaseOrderDetails()->exists()

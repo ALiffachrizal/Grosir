@@ -13,48 +13,33 @@ use Carbon\Carbon;
 
 class SaleController extends Controller
 {
-    /**
-     * Redirect ke halaman POS
-     */
     public function index()
     {
         return redirect()->route('sales.create');
     }
 
-    /**
-     * Halaman POS
-     */
     public function create()
     {
-        $products   = Product::where('stock', '>', 0)
-            ->orderBy('name')
-            ->get();
-
+        $products   = Product::where('stock', '>', 0)->orderBy('name')->get();
         $categories = Category::product()->orderBy('name')->get();
 
         return view('sales.create', compact('products', 'categories'));
     }
 
-    /**
-     * Proses penjualan
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'items'          => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'exists:products,id'],
-            'items.*.quantity'   => ['required', 'integer', 'min:1'],
-            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
-            'items.*.description'=> ['nullable', 'string'],
-            'payment_method' => ['required', 'in:cash,transfer'],
-        ], [
-            'items.required'        => 'Keranjang belanja kosong.',
-            'payment_method.required'=> 'Metode pembayaran wajib dipilih.',
+            'items'                  => ['required', 'array', 'min:1'],
+            'items.*.kode_produk'    => ['required', 'exists:products,kode_produk'],
+            'items.*.quantity'       => ['required', 'integer', 'min:1'],
+            'items.*.unit_price'     => ['required', 'numeric', 'min:0'],
+            'items.*.description'    => ['nullable', 'string'],
+            'payment_method'         => ['required', 'in:cash,transfer'],
         ]);
 
         // Validasi stok SEBELUM transaksi
         foreach ($request->items as $item) {
-            $product = Product::find($item['product_id']);
+            $product = Product::where('kode_produk', $item['kode_produk'])->first();
             if ($product->stock < $item['quantity']) {
                 return back()->with('error',
                     'Stok ' . $product->name . ' tidak mencukupi. ' .
@@ -66,13 +51,10 @@ class SaleController extends Controller
         $saleId = null;
 
         DB::transaction(function () use ($request, &$saleId) {
+            $totalPrice = collect($request->items)->sum(fn($item) =>
+                $item['quantity'] * $item['unit_price']
+            );
 
-            // Hitung total harga
-            $totalPrice = collect($request->items)->sum(function ($item) {
-                return $item['quantity'] * $item['unit_price'];
-            });
-
-            // Buat transaksi penjualan
             $sale = Sale::create([
                 'user_id'        => auth()->id(),
                 'date'           => Carbon::today(),
@@ -81,23 +63,20 @@ class SaleController extends Controller
             ]);
 
             foreach ($request->items as $item) {
-                $product = Product::find($item['product_id']);
+                $product = Product::where('kode_produk', $item['kode_produk'])->first();
 
-                // Simpan detail penjualan
                 SaleDetail::create([
                     'sale_id'     => $sale->id,
-                    'product_id'  => $item['product_id'],
+                    'kode_produk' => $item['kode_produk'],
                     'quantity'    => $item['quantity'],
                     'unit_price'  => $item['unit_price'],
                     'description' => $item['description'] ?? null,
                 ]);
 
-                // Kurangi stok
                 $product->decrement('stock', $item['quantity']);
 
-                // Catat stock log
                 StockLog::create([
-                    'product_id'     => $item['product_id'],
+                    'kode_produk'    => $item['kode_produk'],
                     'user_id'        => auth()->id(),
                     'type'           => 'out',
                     'quantity'       => $item['quantity'],
@@ -114,18 +93,12 @@ class SaleController extends Controller
             ->with('success', 'Transaksi berhasil disimpan.');
     }
 
-    /**
-     * Detail transaksi
-     */
     public function show(Sale $sale)
     {
         $sale->load(['user', 'details.product', 'refunds']);
         return view('sales.show', compact('sale'));
     }
 
-    /**
-     * Struk penjualan
-     */
     public function receipt(Sale $sale)
     {
         $sale->load(['user', 'details.product']);

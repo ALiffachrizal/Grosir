@@ -38,7 +38,7 @@
                 </p>
             </div>
 
-            <div class="divide-y divide-gray-50" x-data="refundForm()">
+            <div class="divide-y divide-gray-50">
 
                 @foreach($refundableItems as $index => $item)
                 <div class="p-5" x-data="{ checked: false, qty: {{ $item['refundable'] }} }">
@@ -56,6 +56,9 @@
                                     <p class="font-semibold text-gray-800">
                                         {{ $item['detail']->product->name }}
                                     </p>
+                                    <p class="text-xs text-gray-400 font-mono">
+                                        {{ $item['detail']->kode_produk }}
+                                    </p>
                                     <p class="text-xs text-gray-400">
                                         {{ $item['detail']->description ?? '-' }}
                                     </p>
@@ -72,12 +75,16 @@
                             <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
                                 <span>Dibeli: <strong>{{ $item['detail']->quantity }}</strong></span>
                                 @if($item['refunded'] > 0)
-                                <span class="text-orange-500">Sudah direfund: <strong>{{ $item['refunded'] }}</strong></span>
+                                <span class="text-orange-500">
+                                    Sudah direfund: <strong>{{ $item['refunded'] }}</strong>
+                                </span>
                                 @endif
-                                <span class="text-green-600">Bisa direfund: <strong>{{ $item['refundable'] }}</strong></span>
+                                <span class="text-green-600">
+                                    Bisa direfund: <strong>{{ $item['refundable'] }}</strong>
+                                </span>
                             </div>
 
-                            {{-- Input Qty (aktif jika dicentang) --}}
+                            {{-- Input Qty --}}
                             <div x-show="checked" class="flex items-center gap-3">
                                 <label class="text-sm text-gray-600">Jumlah refund:</label>
                                 <div class="flex items-center gap-2">
@@ -92,7 +99,9 @@
                                            x-model="qty"
                                            min="1"
                                            max="{{ $item['refundable'] }}"
-                                           class="w-16 text-center border border-gray-300 rounded-lg py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                           class="w-16 text-center border border-gray-300 rounded-lg
+                                                  py-1.5 text-sm font-bold focus:outline-none
+                                                  focus:ring-2 focus:ring-blue-500">
                                     <button type="button"
                                             @click="qty < {{ $item['refundable'] }} ? qty++ : null"
                                             class="w-8 h-8 rounded-lg bg-blue-100 hover:bg-blue-200
@@ -100,15 +109,13 @@
                                         +
                                     </button>
                                 </div>
-                                <span class="text-xs text-gray-400">
-                                    maks. {{ $item['refundable'] }}
-                                </span>
+                                <span class="text-xs text-gray-400">maks. {{ $item['refundable'] }}</span>
                             </div>
 
-                            {{-- Hidden input product_id (hanya kirim jika dicentang) --}}
+                            {{-- Hidden input kode_produk --}}
                             <input type="hidden"
-                                   name="items[{{ $index }}][product_id]"
-                                   value="{{ $item['detail']->product_id }}"
+                                   name="items[{{ $index }}][kode_produk]"
+                                   value="{{ $item['detail']->kode_produk }}"
                                    x-bind:disabled="!checked">
                         </div>
                     </div>
@@ -120,11 +127,13 @@
             {{-- Tombol --}}
             <div class="p-5 border-t border-gray-100 flex gap-3">
                 <button type="submit"
-                        class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-lg text-sm font-semibold transition">
+                        class="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2.5
+                               rounded-lg text-sm font-semibold transition">
                     ↩️ Proses Refund
                 </button>
                 <a href="{{ route('refunds.index') }}"
-                   class="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm font-medium transition">
+                   class="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700
+                          py-2.5 rounded-lg text-sm font-medium transition">
                     Batal
                 </a>
             </div>
@@ -135,11 +144,3 @@
 </div>
 
 @endsection
-
-@push('scripts')
-<script>
-function refundForm() {
-    return {}
-}
-</script>
-@endpush

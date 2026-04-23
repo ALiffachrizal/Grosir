@@ -10,9 +10,11 @@ return new class extends Migration
     {
         Schema::create('purchase_orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('supplier_id')
-                  ->constrained('suppliers')
-                  ->restrictOnDelete(); // tidak bisa hapus supplier jika ada PO
+            $table->string('kode_supplier', 10);
+            $table->foreign('kode_supplier')
+                  ->references('kode_supplier')
+                  ->on('suppliers')
+                  ->restrictOnDelete();
             $table->foreignId('user_id')
                   ->constrained('users')
                   ->restrictOnDelete();
