@@ -6,9 +6,10 @@
 
 @section('content')
 
-{{-- STAT CARDS --}}
+{{-- ===== STAT CARDS ===== --}}
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
 
+    {{-- Total Produk --}}
     <div class="bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl p-5 text-white shadow">
         <div class="flex items-center justify-between">
             <div>
@@ -20,6 +21,7 @@
         </div>
     </div>
 
+    {{-- Total Supplier --}}
     <div class="bg-gradient-to-br from-green-500 to-green-700 rounded-xl p-5 text-white shadow">
         <div class="flex items-center justify-between">
             <div>
@@ -31,6 +33,7 @@
         </div>
     </div>
 
+    {{-- Pending Orders --}}
     <div class="bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl p-5 text-white shadow">
         <div class="flex items-center justify-between">
             <div>
@@ -42,30 +45,49 @@
         </div>
     </div>
 
+    {{-- Penjualan Hari Ini --}}
+    @if(auth()->user()->role === 'admin')
     <a href="{{ route('reports.sales') }}?filter=today" class="block">
-        <div class="bg-gradient-to-br from-pink-500 to-pink-700 rounded-xl p-5 text-white shadow hover:shadow-lg transition cursor-pointer">
+    @else
+    <div>
+    @endif
+        <div class="bg-gradient-to-br from-pink-500 to-pink-700 rounded-xl p-5 text-white shadow
+                    {{ auth()->user()->role === 'admin' ? 'hover:shadow-lg transition cursor-pointer' : '' }}">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-pink-200 text-sm font-medium">Penjualan Hari Ini</p>
-                    <p class="text-2xl font-bold mt-1">Rp {{ number_format($todaySales, 0, ',', '.') }}</p>
-                    <p class="text-pink-200 text-xs mt-1">klik untuk lihat laporan</p>
+                    <p class="text-2xl font-bold mt-1">
+                        Rp {{ number_format($todaySales, 0, ',', '.') }}
+                    </p>
+                    <p class="text-pink-200 text-xs mt-1">
+                        {{ auth()->user()->role === 'admin' ? 'klik untuk lihat laporan' : 'total penjualan' }}
+                    </p>
                 </div>
                 <div class="text-4xl opacity-80">💰</div>
             </div>
         </div>
+    @if(auth()->user()->role === 'admin')
     </a>
+    @else
+    </div>
+    @endif
 
 </div>
 
-{{-- GRAFIK & STOK MENIPIS --}}
+{{-- ===== GRAFIK & STOK MENIPIS ===== --}}
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
 
+    {{-- Grafik Penjualan 7 Hari - admin & cashier --}}
+    @if(in_array(auth()->user()->role, ['admin', 'cashier']))
     <div class="xl:col-span-2 bg-white rounded-xl shadow p-5">
         <h3 class="text-gray-800 font-semibold text-base mb-4">📈 Penjualan 7 Hari Terakhir</h3>
         <canvas id="salesChart" height="100"></canvas>
     </div>
+    @endif
 
-    <div class="bg-white rounded-xl shadow p-5">
+    {{-- Stok Menipis --}}
+    <div class="{{ in_array(auth()->user()->role, ['admin', 'cashier']) ? 'xl:col-span-1' : 'xl:col-span-3' }}
+                bg-white rounded-xl shadow p-5">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-gray-800 font-semibold text-base">⚠️ Stok Menipis</h3>
             @if($lowStockProducts->count() > 0)
@@ -100,56 +122,74 @@
 
 </div>
 
-{{-- AKSI CEPAT --}}
+{{-- ===== AKSI CEPAT ===== --}}
 <div class="bg-white rounded-xl shadow p-5">
     <h3 class="text-gray-800 font-semibold text-base mb-4">⚡ Aksi Cepat</h3>
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
 
+        {{-- Admin & Cashier --}}
+        @if(in_array(auth()->user()->role, ['admin', 'cashier']))
         <a href="{{ route('sales.create') }}"
-           class="flex flex-col items-center gap-2 p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition text-center">
+           class="flex flex-col items-center gap-2 p-4 bg-blue-50 hover:bg-blue-100
+                  rounded-xl transition text-center">
             <span class="text-3xl">🏪</span>
             <span class="text-sm font-medium text-blue-700">Penjualan Baru</span>
         </a>
 
         <a href="{{ route('refunds.index') }}"
-           class="flex flex-col items-center gap-2 p-4 bg-orange-50 hover:bg-orange-100 rounded-xl transition text-center">
+           class="flex flex-col items-center gap-2 p-4 bg-orange-50 hover:bg-orange-100
+                  rounded-xl transition text-center">
             <span class="text-3xl">↩️</span>
             <span class="text-sm font-medium text-orange-700">Proses Refund</span>
         </a>
+        @endif
 
+        {{-- Admin & Warehouse --}}
+        @if(in_array(auth()->user()->role, ['admin', 'warehouse']))
         <a href="{{ route('purchase-orders.index') }}"
-           class="flex flex-col items-center gap-2 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition text-center">
+           class="flex flex-col items-center gap-2 p-4 bg-green-50 hover:bg-green-100
+                  rounded-xl transition text-center">
             <span class="text-3xl">🛒</span>
             <span class="text-sm font-medium text-green-700">Pesan Barang</span>
         </a>
 
         <a href="{{ route('receiving.index') }}"
-           class="flex flex-col items-center gap-2 p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition text-center">
+           class="flex flex-col items-center gap-2 p-4 bg-purple-50 hover:bg-purple-100
+                  rounded-xl transition text-center">
             <span class="text-3xl">📥</span>
             <span class="text-sm font-medium text-purple-700">Terima Barang</span>
         </a>
+        @endif
 
+        {{-- Admin Only --}}
+        @if(auth()->user()->role === 'admin')
         <a href="{{ route('products.index') }}"
-           class="flex flex-col items-center gap-2 p-4 bg-yellow-50 hover:bg-yellow-100 rounded-xl transition text-center">
+           class="flex flex-col items-center gap-2 p-4 bg-yellow-50 hover:bg-yellow-100
+                  rounded-xl transition text-center">
             <span class="text-3xl">📦</span>
             <span class="text-sm font-medium text-yellow-700">Kelola Produk</span>
         </a>
 
         <a href="{{ route('reports.sales') }}"
-           class="flex flex-col items-center gap-2 p-4 bg-pink-50 hover:bg-pink-100 rounded-xl transition text-center">
+           class="flex flex-col items-center gap-2 p-4 bg-pink-50 hover:bg-pink-100
+                  rounded-xl transition text-center">
             <span class="text-3xl">📊</span>
             <span class="text-sm font-medium text-pink-700">Laporan Penjualan</span>
         </a>
+        @endif
 
     </div>
 </div>
 
 @endsection
 
+{{-- ===== CHART JS ===== --}}
 @push('scripts')
+@if(in_array(auth()->user()->role, ['admin', 'cashier']))
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const ctx = document.getElementById('salesChart').getContext('2d');
+
     new Chart(ctx, {
         type: 'line',
         data: {
@@ -194,4 +234,5 @@
         }
     });
 </script>
+@endif
 @endpush

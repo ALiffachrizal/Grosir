@@ -14,87 +14,66 @@ use App\Http\Controllers\RefundController;
 use App\Http\Controllers\StockLogController;
 use App\Http\Controllers\ReportController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
-// ===== HALAMAN PUBLIK =====
+// Halaman publik
 Route::get('/', [StoreProfileController::class, 'index'])->name('home');
 
-// ===== ROUTES YANG PERLU LOGIN =====
 Route::middleware(['auth'])->group(function () {
 
-    // Dashboard
+    // Dashboard - semua role bisa akses
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // ===== MASTER DATA =====
+    // ===== ADMIN ONLY =====
+    Route::middleware('role:admin')->group(function () {
 
-    // Kelola User
-    Route::resource('users', UserController::class)->except(['show']);
+        // User management
+        Route::resource('users', UserController::class)->except(['show']);
 
-    // Kategori
-     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
-     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
-     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+        // Master data
+        Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+        Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+        Route::resource('suppliers', SupplierController::class);
+        Route::resource('products', ProductController::class);
 
-    // Supplier
-    Route::resource('suppliers', SupplierController::class);
+        // Laporan penjualan
+        Route::get('/reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
+        Route::get('/reports/sales/export-pdf', [ReportController::class, 'exportSalesPdf'])->name('reports.sales.pdf');
+        Route::get('/reports/sales/export-excel', [ReportController::class, 'exportSalesExcel'])->name('reports.sales.excel');
+    });
 
-    // Produk
-    Route::resource('products', ProductController::class);
+    // ===== ADMIN & WAREHOUSE =====
+    Route::middleware('role:admin,warehouse')->group(function () {
 
-    // ===== GUDANG =====
+        // Pemesanan & Penerimaan
+        Route::resource('purchase-orders', PurchaseOrderController::class)
+             ->only(['index', 'create', 'store', 'show']);
+        Route::get('/receiving', [ReceivingController::class, 'index'])->name('receiving.index');
+        Route::get('/receiving/{purchaseOrder}', [ReceivingController::class, 'show'])->name('receiving.show');
+        Route::post('/receiving/{purchaseOrder}/confirm', [ReceivingController::class, 'confirm'])->name('receiving.confirm');
 
-    // Pemesanan Barang
-    Route::resource('purchase-orders', PurchaseOrderController::class)
-         ->only(['index', 'create', 'store', 'show']);
+        // Stock log & laporan stok
+        Route::get('/stock-logs', [StockLogController::class, 'index'])->name('stock-logs.index');
+        Route::get('/reports/stock', [ReportController::class, 'stock'])->name('reports.stock');
+        Route::get('/reports/stock/export-excel', [ReportController::class, 'exportStockExcel'])->name('reports.stock.excel');
+    });
 
-    // Penerimaan Barang
-    Route::get('/receiving', [ReceivingController::class, 'index'])
-         ->name('receiving.index');
-    Route::get('/receiving/{purchaseOrder}', [ReceivingController::class, 'show'])
-         ->name('receiving.show');
-    Route::post('/receiving/{purchaseOrder}/confirm', [ReceivingController::class, 'confirm'])
-         ->name('receiving.confirm');
+    // ===== ADMIN & CASHIER =====
+    Route::middleware('role:admin,cashier')->group(function () {
 
-    // Stock Log
-    Route::get('/stock-logs', [StockLogController::class, 'index'])
-         ->name('stock-logs.index');
+        // Penjualan
+        Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
+        Route::get('/sales/create', [SaleController::class, 'create'])->name('sales.create');
+        Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
+        Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
+        Route::get('/sales/{sale}/receipt', [SaleController::class, 'receipt'])->name('sales.receipt');
 
-    // ===== TRANSAKSI =====
-
-    // Penjualan
-    Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
-    Route::get('/sales/create', [SaleController::class, 'create'])->name('sales.create');
-    Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
-    Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
-    Route::get('/sales/{sale}/receipt', [SaleController::class, 'receipt'])->name('sales.receipt');
-
-    // Refund
-    Route::get('/refunds', [RefundController::class, 'index'])->name('refunds.index');
-    Route::get('/refunds/create', [RefundController::class, 'create'])->name('refunds.create');
-    Route::post('/refunds', [RefundController::class, 'store'])->name('refunds.store');
-    Route::get('/refunds/{sale}', [RefundController::class, 'show'])->name('refunds.show');
-
-    // ===== LAPORAN =====
-
-    // Laporan Stok
-    Route::get('/reports/stock', [ReportController::class, 'stock'])
-         ->name('reports.stock');
-    Route::get('/reports/stock/export-excel', [ReportController::class, 'exportStockExcel'])
-         ->name('reports.stock.excel');
-
-    // Laporan Penjualan
-    Route::get('/reports/sales', [ReportController::class, 'sales'])
-         ->name('reports.sales');
-    Route::get('/reports/sales/export-pdf', [ReportController::class, 'exportSalesPdf'])
-         ->name('reports.sales.pdf');
-    Route::get('/reports/sales/export-excel', [ReportController::class, 'exportSalesExcel'])
-         ->name('reports.sales.excel');
+        // Refund
+        Route::get('/refunds', [RefundController::class, 'index'])->name('refunds.index');
+        Route::get('/refunds/create', [RefundController::class, 'create'])->name('refunds.create');
+        Route::post('/refunds', [RefundController::class, 'store'])->name('refunds.store');
+        Route::get('/refunds/{sale}', [RefundController::class, 'show'])->name('refunds.show');
+    });
 
 });
 
-// ===== AUTH ROUTES (login/logout) =====
 require __DIR__.'/auth.php';

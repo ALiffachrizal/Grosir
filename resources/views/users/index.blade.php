@@ -15,7 +15,8 @@
             <p class="text-gray-500 text-sm mt-0.5">Total {{ $users->count() }} user terdaftar</p>
         </div>
         <a href="{{ route('users.create') }}"
-           class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+           class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+                  px-4 py-2 rounded-lg text-sm font-medium transition">
             + Tambah User
         </a>
     </div>
@@ -38,20 +39,21 @@
                     <td class="px-5 py-3 text-gray-500">{{ $index + 1 }}</td>
                     <td class="px-5 py-3">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-gray-900 font-bold text-sm">
+                            <div class="w-8 h-8 rounded-full bg-yellow-400 flex items-center
+                                        justify-center text-gray-900 font-bold text-sm">
                                 {{ strtoupper(substr($user->username, 0, 1)) }}
                             </div>
                             <div>
                                 <p class="font-medium text-gray-800">{{ $user->username }}</p>
-                                @if($user->id === auth()->id())
+                                @if($user->id === auth()->user()->id)
                                 <p class="text-xs text-blue-500">● Anda</p>
                                 @endif
                             </div>
                         </div>
                     </td>
                     <td class="px-5 py-3">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
-                            Admin
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $user->role_color }}">
+                            {{ $user->role_label }}
                         </span>
                     </td>
                     <td class="px-5 py-3 text-gray-500">
@@ -60,21 +62,24 @@
                     <td class="px-5 py-3">
                         <div class="flex items-center justify-center gap-2">
                             <a href="{{ route('users.edit', $user) }}"
-                               class="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+                               class="bg-yellow-50 hover:bg-yellow-100 text-yellow-700
+                                      px-3 py-1.5 rounded-lg text-xs font-medium transition">
                                 ✏️ Edit
                             </a>
-                            @if($user->id !== auth()->id())
+                            @if($user->id !== auth()->user()->id)
                             <form action="{{ route('users.destroy', $user) }}" method="POST"
                                   onsubmit="return confirm('Hapus user {{ $user->username }}?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"
-                                        class="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+                                        class="bg-red-50 hover:bg-red-100 text-red-700
+                                               px-3 py-1.5 rounded-lg text-xs font-medium transition">
                                     🗑️ Hapus
                                 </button>
                             </form>
                             @else
-                            <span class="bg-gray-50 text-gray-400 px-3 py-1.5 rounded-lg text-xs font-medium cursor-not-allowed">
+                            <span class="bg-gray-50 text-gray-400 px-3 py-1.5 rounded-lg
+                                         text-xs font-medium cursor-not-allowed">
                                 🔒 Akun Anda
                             </span>
                             @endif

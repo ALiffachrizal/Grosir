@@ -22,163 +22,179 @@
     </div>
 
     {{-- ===== SIDEBAR ===== --}}
-<aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-       class="fixed top-0 left-0 h-screen w-56 bg-gray-900 z-30 transform
-              transition-transform duration-300 ease-in-out lg:translate-x-0
-              flex flex-col">
+    <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+           class="fixed top-0 left-0 h-screen w-56 bg-gray-900 z-30 transform
+                  transition-transform duration-300 ease-in-out lg:translate-x-0
+                  flex flex-col">
 
-    {{-- Logo --}}
-    <div class="flex items-center justify-center h-12 border-b border-white/10 shrink-0">
-        <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
-            <span class="text-lg">🛒</span>
-            <div>
+        {{-- Logo --}}
+        <div class="flex items-center justify-center h-12 border-b border-white/10 shrink-0">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
+                <span class="text-lg">🛒</span>
                 <h1 class="text-yellow-400 font-bold text-sm leading-tight">Toko Grosir IJAD</h1>
-            </div>
-        </a>
-    </div>
+            </a>
+        </div>
 
-    {{-- User Info --}}
-    <div class="px-3 py-2 border-b border-white/10 shrink-0">
-        <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-full bg-yellow-400 flex items-center justify-center
-                        text-gray-900 font-bold text-xs shrink-0">
-                {{ strtoupper(substr(auth()->user()->username, 0, 1)) }}
-            </div>
-            <div class="min-w-0">
-                <p class="text-white text-xs font-semibold truncate">{{ auth()->user()->username }}</p>
-                <span class="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">Admin</span>
+        {{-- User Info --}}
+        <div class="px-3 py-2 border-b border-white/10 shrink-0">
+            <div class="flex items-center gap-2">
+                <div class="w-7 h-7 rounded-full bg-yellow-400 flex items-center justify-center
+                            text-gray-900 font-bold text-xs shrink-0">
+                    {{ strtoupper(substr(auth()->user()->username, 0, 1)) }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-white text-xs font-semibold truncate">
+                        {{ auth()->user()->username }}
+                    </p>
+                    <span class="text-xs px-1.5 py-0.5 rounded-full {{ auth()->user()->role_color }}">
+                        {{ auth()->user()->role_label }}
+                    </span>
+                </div>
             </div>
         </div>
-    </div>
 
-    {{-- Navigation --}}
-<nav class="flex-1 px-2 py-2 flex flex-col overflow-hidden">
+        {{-- Navigation --}}
+        <nav class="flex-1 px-2 py-2 flex flex-col overflow-hidden">
+            <div class="flex flex-col gap-0.5">
 
-    <div class="flex flex-col justify-between h-full">
+                {{-- Dashboard - semua role --}}
+                <a href="{{ route('dashboard') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('dashboard')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>📊</span><span>Dashboard</span>
+                </a>
 
-        {{-- Dashboard --}}
-        <a href="{{ route('dashboard') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('dashboard')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>📊</span><span>Dashboard</span>
-        </a>
+                {{-- MASTER DATA - admin only --}}
+                @if(auth()->user()->role === 'admin')
+                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider px-2 pt-2 pb-0.5">
+                    Master Data
+                </p>
 
-        {{-- Master Data --}}
-        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider px-2 pt-1">
-            Master Data
-        </p>
+                <a href="{{ route('categories.index') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('categories.*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>🏷️</span><span>Kategori</span>
+                </a>
 
-        <a href="{{ route('categories.index') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('categories.*')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>🏷️</span><span>Kategori</span>
-        </a>
+                <a href="{{ route('suppliers.index') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('suppliers.*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>🏭</span><span>Supplier</span>
+                </a>
 
-        <a href="{{ route('suppliers.index') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('suppliers.*')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>🏭</span><span>Supplier</span>
-        </a>
+                <a href="{{ route('products.index') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('products.*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>📦</span>
+                    <span class="flex-1">Produk</span>
+                    @if($lowStockCount > 0)
+                    <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                        {{ $lowStockCount }}
+                    </span>
+                    @endif
+                </a>
 
-        <a href="{{ route('products.index') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('products.*')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>📦</span>
-            <span class="flex-1">Produk</span>
-            @if($lowStockCount > 0)
-            <span class="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {{ $lowStockCount }}
-            </span>
-            @endif
-        </a>
+                <a href="{{ route('users.index') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('users.*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>👥</span><span>Kelola Akun</span>
+                </a>
+                @endif
 
-        {{-- Gudang --}}
-        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider px-2 pt-1">
-            Gudang
-        </p>
+                {{-- GUDANG - admin & warehouse --}}
+                @if(in_array(auth()->user()->role, ['admin', 'warehouse']))
+                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider px-2 pt-2 pb-0.5">
+                    Gudang
+                </p>
 
-        <a href="{{ route('purchase-orders.index') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('purchase-orders.*')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>🛒</span><span>Pemesanan Barang</span>
-        </a>
+                <a href="{{ route('purchase-orders.index') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('purchase-orders.*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>🛒</span><span>Pemesanan Barang</span>
+                </a>
 
-        <a href="{{ route('receiving.index') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('receiving.*')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>📥</span><span>Penerimaan Barang</span>
-        </a>
+                <a href="{{ route('receiving.index') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('receiving.*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>📥</span><span>Penerimaan Barang</span>
+                </a>
 
-        <a href="{{ route('stock-logs.index') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('stock-logs.*')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>📋</span><span>Stock Log</span>
-        </a>
+                <a href="{{ route('stock-logs.index') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('stock-logs.*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>📋</span><span>Stock Log</span>
+                </a>
 
-        <a href="{{ route('reports.stock') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('reports.stock')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>📈</span><span>Laporan Stok</span>
-        </a>
+                <a href="{{ route('reports.stock') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('reports.stock')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>📈</span><span>Laporan Stok</span>
+                </a>
+                @endif
 
-        {{-- Transaksi --}}
-        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider px-2 pt-1">
-            Transaksi
-        </p>
+                {{-- TRANSAKSI - admin & cashier --}}
+                @if(in_array(auth()->user()->role, ['admin', 'cashier']))
+                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider px-2 pt-2 pb-0.5">
+                    Transaksi
+                </p>
 
-        <a href="{{ route('sales.create') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('sales.*')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>🏪</span><span>Penjualan (POS)</span>
-        </a>
+                <a href="{{ route('sales.create') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('sales.*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>🏪</span><span>Penjualan (POS)</span>
+                </a>
 
-        <a href="{{ route('refunds.index') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('refunds.*')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>↩️</span><span>Refund</span>
-        </a>
+                <a href="{{ route('refunds.index') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('refunds.*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>↩️</span><span>Refund</span>
+                </a>
+                @endif
 
-        {{-- Laporan --}}
-        <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider px-2 pt-1">
-            Laporan
-        </p>
+                {{-- LAPORAN - admin only --}}
+                @if(auth()->user()->role === 'admin')
+                <p class="text-gray-500 text-xs font-semibold uppercase tracking-wider px-2 pt-2 pb-0.5">
+                    Laporan
+                </p>
 
-        <a href="{{ route('reports.sales') }}"
-           class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
-                  {{ request()->routeIs('reports.sales')
-                     ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
-                     : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-            <span>💰</span><span>Laporan Penjualan</span>
-        </a>
+                <a href="{{ route('reports.sales') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('reports.sales')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>💰</span><span>Laporan Penjualan</span>
+                </a>
+                @endif
 
-    </div>
+            </div>
+        </nav>
 
-</nav>
-
-</aside>
+    </aside>
 
     {{-- ===== MAIN CONTENT ===== --}}
-    <div class="lg:ml-58 min-h-screen flex flex-col">
+    <div class="lg:ml-56 min-h-screen flex flex-col">
 
         {{-- Topbar --}}
         <header class="sticky top-0 z-10 bg-white shadow-sm h-14 flex items-center
@@ -225,8 +241,10 @@
                         {{ strtoupper(substr(auth()->user()->username, 0, 1)) }}
                     </div>
                     <div class="hidden sm:block">
-                        <p class="text-sm font-semibold text-gray-800">{{ auth()->user()->username }}</p>
-                        <p class="text-xs text-gray-500">Admin</p>
+                        <p class="text-sm font-semibold text-gray-800">
+                            {{ auth()->user()->username }}
+                        </p>
+                        <p class="text-xs text-gray-500">{{ auth()->user()->role_label }}</p>
                     </div>
                 </div>
 

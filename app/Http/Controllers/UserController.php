@@ -10,7 +10,7 @@ class UserController extends Controller
 {
     public function index()
     {
-        $users = User::orderBy('username')->get();
+        $users = User::orderBy('role')->orderBy('username')->get();
         return view('users.index', compact('users'));
     }
 
@@ -24,18 +24,21 @@ class UserController extends Controller
         $request->validate([
             'username' => ['required', 'string', 'max:255', 'unique:users,username'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'role'     => ['required', 'in:admin,cashier,warehouse'],
         ], [
             'username.required'  => 'Username wajib diisi.',
             'username.unique'    => 'Username sudah digunakan.',
             'password.required'  => 'Password wajib diisi.',
             'password.min'       => 'Password minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'role.required'      => 'Role wajib dipilih.',
+            'role.in'            => 'Role tidak valid.',
         ]);
 
         User::create([
             'username' => $request->username,
             'password' => Hash::make($request->password),
-            'role'     => 'admin', // semua user = admin
+            'role'     => $request->role,
         ]);
 
         return redirect()->route('users.index')
@@ -52,14 +55,20 @@ class UserController extends Controller
         $request->validate([
             'username' => ['required', 'string', 'max:255', 'unique:users,username,' . $user->id],
             'password' => ['nullable', 'string', 'min:6', 'confirmed'],
+            'role'     => ['required', 'in:admin,cashier,warehouse'],
         ], [
             'username.required'  => 'Username wajib diisi.',
             'username.unique'    => 'Username sudah digunakan.',
             'password.min'       => 'Password minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'role.required'      => 'Role wajib dipilih.',
+            'role.in'            => 'Role tidak valid.',
         ]);
 
-        $data = ['username' => $request->username];
+        $data = [
+            'username' => $request->username,
+            'role'     => $request->role,
+        ];
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
@@ -73,7 +82,7 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
-        if ($user->id === auth()->id()) {
+        if ($user->id === auth()->user()->id) {
             return redirect()->route('users.index')
                 ->with('error', 'Tidak bisa menghapus akun sendiri.');
         }
