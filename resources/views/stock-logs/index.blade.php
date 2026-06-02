@@ -18,9 +18,9 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Semua Produk</option>
                 @foreach($products as $product)
-                <option value="{{ $product->id }}" {{ request('product_id') == $product->id ? 'selected' : '' }}>
-                    {{ $product->name }}
-                </option>
+                    <option value="{{ $product->id }}" {{ request('product_id') == $product->id ? 'selected' : '' }}>
+                        {{ $product->name }}
+                    </option>
                 @endforeach
             </select>
         </div>
@@ -31,8 +31,8 @@
             <select name="type"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Semua Tipe</option>
-                <option value="in"     {{ request('type') === 'in'     ? 'selected' : '' }}>Masuk</option>
-                <option value="out"    {{ request('type') === 'out'    ? 'selected' : '' }}>Keluar</option>
+                <option value="in" {{ request('type') === 'in' ? 'selected' : '' }}>Masuk</option>
+                <option value="out" {{ request('type') === 'out' ? 'selected' : '' }}>Keluar</option>
                 <option value="refund" {{ request('type') === 'refund' ? 'selected' : '' }}>Refund</option>
             </select>
         </div>
@@ -57,16 +57,16 @@
                     class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">
                 🔍 Filter
             </button>
+
             <a href="{{ route('stock-logs.index') }}"
                class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">
                 Reset
             </a>
 
-            {{-- Info hasil filter --}}
             @if(request()->hasAny(['product_id', 'type', 'date_from', 'date_to']))
-            <span class="flex items-center text-xs text-blue-600 font-medium">
-                ✅ Filter aktif — {{ $logs->total() }} hasil
-            </span>
+                <span class="flex items-center text-xs text-blue-600 font-medium">
+                    ✅ Filter aktif — {{ $logs->total() }} hasil
+                </span>
             @endif
         </div>
 
@@ -85,7 +85,6 @@
             </p>
         </div>
 
-        {{-- Summary Badge --}}
         <div class="flex gap-2">
             <span class="bg-green-100 text-green-700 text-xs px-3 py-1.5 rounded-full font-medium">
                 ↑ Masuk
@@ -113,79 +112,91 @@
                     <th class="text-left px-5 py-3 font-medium">User</th>
                 </tr>
             </thead>
+
             <tbody class="divide-y divide-gray-100">
                 @forelse($logs as $log)
-                <tr class="hover:bg-gray-50 transition">
+                    <tr class="hover:bg-gray-50 transition">
 
-                    {{-- Tanggal --}}
-                    <td class="px-5 py-3">
-                        <p class="text-gray-800 text-xs font-medium">
-                            {{ $log->created_at->locale('id')->isoFormat('D MMM Y') }}
-                        </p>
-                        <p class="text-gray-400 text-xs">
-                            {{ $log->created_at->format('H:i') }} WIB
-                        </p>
-                    </td>
+                        {{-- Tanggal --}}
+                        <td class="px-5 py-3">
+                            <p class="text-gray-800 text-xs font-medium">
+                                {{ $log->created_at->locale('id')->isoFormat('D MMM Y') }}
+                            </p>
+                            <p class="text-gray-400 text-xs">
+                                {{ $log->created_at->format('H:i') }} WIB
+                            </p>
+                        </td>
 
-                    {{-- Produk --}}
-                    <td class="px-5 py-3">
-                        <p class="font-medium text-gray-800">{{ $log->product->name }}</p>
-                        <p class="text-xs text-gray-400">{{ $log->product->category }}</p>
-                    </td>
+                        {{-- Produk --}}
+                        <td class="px-5 py-3">
+                            <p class="font-medium text-gray-800">
+                                {{ $log->product->name ?? '-' }}
+                            </p>
+                            <p class="text-xs text-gray-400">
+                                {{ $log->product->category->name ?? '-' }}
+                            </p>
+                        </td>
 
-                    {{-- Tipe Badge --}}
-                    <td class="px-5 py-3 text-center">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $log->type_color }}">
-                            @if($log->type === 'in') ↑
-                            @elseif($log->type === 'out') ↓
-                            @else ↩
-                            @endif
-                            {{ $log->type_label }}
-                        </span>
-                    </td>
+                        {{-- Tipe Badge --}}
+                        <td class="px-5 py-3 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $log->type_color }}">
+                                @if($log->type === 'in')
+                                    ↑
+                                @elseif($log->type === 'out')
+                                    ↓
+                                @else
+                                    ↩
+                                @endif
+                                {{ $log->type_label }}
+                            </span>
+                        </td>
 
-                    {{-- Qty --}}
-                    <td class="px-5 py-3 text-center">
-                        <span class="font-bold text-lg
-                            {{ $log->type === 'out'
-                                ? 'text-red-600'
-                                : ($log->type === 'in' ? 'text-green-600' : 'text-yellow-600') }}">
-                            {{ $log->type === 'out' ? '-' : '+' }}{{ $log->quantity }}
-                        </span>
-                        <p class="text-xs text-gray-400">{{ $log->product->base_unit }}</p>
-                    </td>
+                        {{-- Qty --}}
+                        <td class="px-5 py-3 text-center">
+                            <span class="font-bold text-lg
+                                {{ $log->type === 'out'
+                                    ? 'text-red-600'
+                                    : ($log->type === 'in' ? 'text-green-600' : 'text-yellow-600') }}">
+                                {{ $log->type === 'out' ? '-' : '+' }}{{ $log->quantity }}
+                            </span>
+                            <p class="text-xs text-gray-400">
+                                {{ $log->product->base_unit ?? '' }}
+                            </p>
+                        </td>
 
-                    {{-- Referensi --}}
-                    <td class="px-5 py-3">
-                        <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-lg">
-                            {{ $log->reference_label }}
-                        </span>
-                    </td>
+                        {{-- Referensi --}}
+                        <td class="px-5 py-3">
+                            <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-lg">
+                                {{ $log->reference_label }}
+                            </span>
+                        </td>
 
-                    {{-- Catatan --}}
-                    <td class="px-5 py-3 text-gray-500 text-xs max-w-xs truncate">
-                        {{ $log->note ?? '-' }}
-                    </td>
+                        {{-- Catatan --}}
+                        <td class="px-5 py-3 text-gray-500 text-xs max-w-xs truncate">
+                            {{ $log->note ?? '-' }}
+                        </td>
 
-                    {{-- User --}}
-                    <td class="px-5 py-3">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center
-                                        text-gray-900 font-bold text-xs">
-                                {{ strtoupper(substr($log->user->username ?? 'S', 0, 1)) }}
+                        {{-- User --}}
+                        <td class="px-5 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center
+                                            text-gray-900 font-bold text-xs">
+                                    {{ strtoupper(substr($log->user->username ?? 'S', 0, 1)) }}
+                                </div>
+                                <span class="text-gray-600 text-xs">
+                                    {{ $log->user->username ?? '-' }}
+                                </span>
                             </div>
-                            <span class="text-gray-600 text-xs">{{ $log->user->username ?? '-' }}</span>
-                        </div>
-                    </td>
+                        </td>
 
-                </tr>
+                    </tr>
                 @empty
-                <tr>
-                    <td colspan="7" class="text-center py-12 text-gray-400">
-                        <div class="text-4xl mb-2">📋</div>
-                        <p>Belum ada riwayat perubahan stok</p>
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="7" class="text-center py-12 text-gray-400">
+                            <div class="text-4xl mb-2">📋</div>
+                            <p>Belum ada riwayat perubahan stok</p>
+                        </td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
@@ -193,9 +204,9 @@
 
     {{-- Pagination --}}
     @if($logs->hasPages())
-    <div class="px-5 py-4 border-t border-gray-100">
-        {{ $logs->links() }}
-    </div>
+        <div class="px-5 py-4 border-t border-gray-100">
+            {{ $logs->links() }}
+        </div>
     @endif
 
 </div>

@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Sale;
-use App\Models\Refund;
 use App\Models\Product;
+use App\Models\Category;
 use App\Exports\SalesExport;
 use App\Exports\StockExport;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -19,15 +19,25 @@ class ReportController extends Controller
      */
     public function stock()
     {
-        $products = Product::orderByRaw('stock <= minimum_stock DESC')
+        $products = Product::with('category')
+            ->orderByRaw('stock <= minimum_stock DESC')
             ->orderBy('stock')
             ->orderBy('name')
             ->get();
 
-        $lowStockCount     = $products->filter(fn($p) => $p->stok_menipis)->count();
-        $productCategories = \App\Models\Category::product()->orderBy('name')->get();
+        $lowStockCount = $products->filter(function ($product) {
+            return $product->stok_menipis;
+        })->count();
 
-        return view('reports.stock', compact('products', 'lowStockCount', 'productCategories'));
+        $productCategories = Category::product()
+            ->orderBy('name')
+            ->get();
+
+        return view('reports.stock', compact(
+            'products',
+            'lowStockCount',
+            'productCategories'
+        ));
     }
 
     /**
@@ -36,6 +46,7 @@ class ReportController extends Controller
     public function exportStockExcel()
     {
         $filename = 'laporan-stok-' . Carbon::now()->format('Y-m-d') . '.xlsx';
+
         return Excel::download(new StockExport, $filename);
     }
 
@@ -44,38 +55,47 @@ class ReportController extends Controller
      */
     public function sales(Request $request)
     {
-        $filter   = $request->filter ?? 'this_month';
+        $filter = $request->filter ?? 'this_month';
         $dateFrom = null;
-        $dateTo   = null;
+        $dateTo = null;
 
         switch ($filter) {
             case 'today':
                 $dateFrom = Carbon::today();
-                $dateTo   = Carbon::today();
+                $dateTo = Carbon::today();
                 break;
+
             case 'this_month':
                 $dateFrom = Carbon::now()->startOfMonth();
-                $dateTo   = Carbon::now()->endOfMonth();
+                $dateTo = Carbon::now()->endOfMonth();
                 break;
+
             case 'this_year':
                 $dateFrom = Carbon::now()->startOfYear();
-                $dateTo   = Carbon::now()->endOfYear();
+                $dateTo = Carbon::now()->endOfYear();
                 break;
+
             case 'custom':
                 $dateFrom = $request->date_from
                     ? Carbon::parse($request->date_from)
                     : Carbon::now()->startOfMonth();
+
                 $dateTo = $request->date_to
                     ? Carbon::parse($request->date_to)
                     : Carbon::now()->endOfMonth();
                 break;
+
             default:
                 $dateFrom = Carbon::now()->startOfMonth();
-                $dateTo   = Carbon::now()->endOfMonth();
+                $dateTo = Carbon::now()->endOfMonth();
                 break;
         }
 
-        $sales = Sale::with(['details.product', 'user', 'refunds.product'])
+        $sales = Sale::with([
+                'details.product.category',
+                'user',
+                'refunds.product.category',
+            ])
             ->whereBetween('date', [
                 $dateFrom->toDateString(),
                 $dateTo->toDateString(),
@@ -83,26 +103,30 @@ class ReportController extends Controller
             ->latest()
             ->get();
 
-        // Total penjualan kotor
         $totalSales = $sales->sum('total_price');
 
-        // Hitung total nominal refund (qty x harga saat transaksi)
         $totalRefundNominal = 0;
+
         foreach ($sales as $sale) {
             foreach ($sale->refunds as $refund) {
                 $saleDetail = $sale->details
                     ->where('kode_produk', $refund->kode_produk)
                     ->first();
+
                 if ($saleDetail) {
                     $totalRefundNominal += $refund->quantity * $saleDetail->unit_price;
                 }
             }
         }
 
-        $totalRefunds   = $sales->sum(fn($s) => $s->refunds->count());
-        $totalRefundQty = $sales->sum(fn($s) => $s->refunds->sum('quantity'));
+        $totalRefunds = $sales->sum(function ($sale) {
+            return $sale->refunds->count();
+        });
 
-        // Penjualan bersih = kotor - nominal refund
+        $totalRefundQty = $sales->sum(function ($sale) {
+            return $sale->refunds->sum('quantity');
+        });
+
         $netRevenue = $totalSales - $totalRefundNominal;
 
         return view('reports.sales', compact(
@@ -123,11 +147,15 @@ class ReportController extends Controller
      */
     public function exportSalesPdf(Request $request)
     {
-        $filter   = $request->filter ?? 'this_month';
+        $filter = $request->filter ?? 'this_month';
         $dateFrom = $this->getDateFrom($filter, $request->date_from);
-        $dateTo   = $this->getDateTo($filter, $request->date_to);
+        $dateTo = $this->getDateTo($filter, $request->date_to);
 
-        $sales = Sale::with(['details.product', 'user', 'refunds.product'])
+        $sales = Sale::with([
+                'details.product.category',
+                'user',
+                'refunds.product.category',
+            ])
             ->whereBetween('date', [
                 $dateFrom->toDateString(),
                 $dateTo->toDateString(),
@@ -135,7 +163,7 @@ class ReportController extends Controller
             ->latest()
             ->get();
 
-        $totalSales         = $sales->sum('total_price');
+        $totalSales = $sales->sum('total_price');
         $totalRefundNominal = 0;
 
         foreach ($sales as $sale) {
@@ -143,15 +171,22 @@ class ReportController extends Controller
                 $saleDetail = $sale->details
                     ->where('kode_produk', $refund->kode_produk)
                     ->first();
+
                 if ($saleDetail) {
                     $totalRefundNominal += $refund->quantity * $saleDetail->unit_price;
                 }
             }
         }
 
-        $totalRefunds   = $sales->sum(fn($s) => $s->refunds->count());
-        $totalRefundQty = $sales->sum(fn($s) => $s->refunds->sum('quantity'));
-        $netRevenue     = $totalSales - $totalRefundNominal;
+        $totalRefunds = $sales->sum(function ($sale) {
+            return $sale->refunds->count();
+        });
+
+        $totalRefundQty = $sales->sum(function ($sale) {
+            return $sale->refunds->sum('quantity');
+        });
+
+        $netRevenue = $totalSales - $totalRefundNominal;
 
         $pdf = Pdf::loadView('reports.sales-pdf', compact(
             'sales',
@@ -164,7 +199,11 @@ class ReportController extends Controller
             'dateTo'
         ))->setPaper('a4', 'landscape');
 
-        $filename = 'laporan-penjualan-' . $dateFrom->format('Y-m-d') . '-sd-' . $dateTo->format('Y-m-d') . '.pdf';
+        $filename = 'laporan-penjualan-' .
+            $dateFrom->format('Y-m-d') .
+            '-sd-' .
+            $dateTo->format('Y-m-d') .
+            '.pdf';
 
         return $pdf->download($filename);
     }
@@ -174,11 +213,15 @@ class ReportController extends Controller
      */
     public function exportSalesExcel(Request $request)
     {
-        $filter   = $request->filter ?? 'this_month';
+        $filter = $request->filter ?? 'this_month';
         $dateFrom = $this->getDateFrom($filter, $request->date_from);
-        $dateTo   = $this->getDateTo($filter, $request->date_to);
+        $dateTo = $this->getDateTo($filter, $request->date_to);
 
-        $filename = 'laporan-penjualan-' . $dateFrom->format('Y-m-d') . '-sd-' . $dateTo->format('Y-m-d') . '.xlsx';
+        $filename = 'laporan-penjualan-' .
+            $dateFrom->format('Y-m-d') .
+            '-sd-' .
+            $dateTo->format('Y-m-d') .
+            '.xlsx';
 
         return Excel::download(new SalesExport($dateFrom, $dateTo), $filename);
     }
@@ -188,12 +231,12 @@ class ReportController extends Controller
      */
     private function getDateFrom($filter, $customDate = null): Carbon
     {
-        return match($filter) {
-            'today'      => Carbon::today(),
+        return match ($filter) {
+            'today' => Carbon::today(),
             'this_month' => Carbon::now()->startOfMonth(),
-            'this_year'  => Carbon::now()->startOfYear(),
-            'custom'     => $customDate ? Carbon::parse($customDate) : Carbon::now()->startOfMonth(),
-            default      => Carbon::now()->startOfMonth(),
+            'this_year' => Carbon::now()->startOfYear(),
+            'custom' => $customDate ? Carbon::parse($customDate) : Carbon::now()->startOfMonth(),
+            default => Carbon::now()->startOfMonth(),
         };
     }
 
@@ -202,12 +245,12 @@ class ReportController extends Controller
      */
     private function getDateTo($filter, $customDate = null): Carbon
     {
-        return match($filter) {
-            'today'      => Carbon::today(),
+        return match ($filter) {
+            'today' => Carbon::today(),
             'this_month' => Carbon::now()->endOfMonth(),
-            'this_year'  => Carbon::now()->endOfYear(),
-            'custom'     => $customDate ? Carbon::parse($customDate) : Carbon::now()->endOfMonth(),
-            default      => Carbon::now()->endOfMonth(),
+            'this_year' => Carbon::now()->endOfYear(),
+            'custom' => $customDate ? Carbon::parse($customDate) : Carbon::now()->endOfMonth(),
+            default => Carbon::now()->endOfMonth(),
         };
     }
 }

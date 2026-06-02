@@ -6,22 +6,16 @@ use App\Models\Product;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class StockExport implements
-    FromCollection,
-    WithHeadings,
-    WithMapping,
-    WithStyles,
-    WithTitle,
-    ShouldAutoSize
+class StockExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles
 {
     public function collection()
     {
-        return Product::orderByRaw('stock <= minimum_stock DESC')
+        return Product::with('category')
+            ->orderByRaw('stock <= minimum_stock DESC')
             ->orderBy('stock')
             ->orderBy('name')
             ->get();
@@ -50,29 +44,29 @@ class StockExport implements
         return [
             $no,
             $product->name,
-            $product->category,
+            $product->category->name ?? '-',
             $product->base_unit,
             $product->stock,
             $product->minimum_stock,
             $product->purchase_price,
             $product->selling_price,
-            $product->stok_menipis ? 'Menipis' : 'Aman',
+            $product->stock <= $product->minimum_stock ? 'Menipis' : 'Aman',
         ];
     }
 
-    public function styles(Worksheet $sheet): array
+    public function styles(Worksheet $sheet)
     {
         return [
             1 => [
-                'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill'      => ['fillType' => 'solid', 'startColor' => ['rgb' => '1F2937']],
-                'alignment' => ['horizontal' => 'center'],
+                'font' => [
+                    'bold' => true,
+                    'color' => ['rgb' => 'FFFFFF'],
+                ],
+                'fill' => [
+                    'fillType' => 'solid',
+                    'startColor' => ['rgb' => '1F2937'],
+                ],
             ],
         ];
-    }
-
-    public function title(): string
-    {
-        return 'Laporan Stok';
     }
 }

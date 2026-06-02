@@ -120,7 +120,7 @@
                 <tr class="hover:bg-gray-50 transition product-row
                            {{ $product->stok_menipis ? 'bg-red-50/30' : '' }}"
                     data-name="{{ strtolower($product->name) }}"
-                    data-category="{{ $product->category }}"
+                    data-category="{{ $product->category->name ?? '-' }}"
                     data-status="{{ $product->stok_menipis ? 'menipis' : 'aman' }}">
                     <td class="px-5 py-3 text-gray-500 row-number">{{ $index + 1 }}</td>
                     <td class="px-5 py-3">
@@ -132,7 +132,7 @@
                     </td>
                     <td class="px-5 py-3">
                         <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
-                            {{ $product->category }}
+                            {{ $product->category->name ?? '-' }}
                         </span>
                     </td>
                     <td class="px-5 py-3 text-gray-600">{{ $product->base_unit }}</td>

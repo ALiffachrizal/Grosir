@@ -13,7 +13,12 @@ return new class extends Migration
             $table->string('kode_supplier', 10)->unique()->nullable();
             $table->string('name');
             $table->string('phone')->nullable();
-            $table->string('category', 100);
+
+            $table->foreignId('category_id')
+                ->constrained('categories')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
+
             $table->timestamps();
         });
     }

@@ -55,7 +55,7 @@
                     </td>
                     <td class="px-5 py-3">
                         <span class="bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                            {{ $supplier->category }}
+                            {{ $supplier->category->name ?? '-' }}
                         </span>
                     </td>
                     <td class="px-5 py-3 text-gray-600">
