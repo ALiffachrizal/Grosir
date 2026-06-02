@@ -4,18 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
     use HasFactory;
 
-    // Primary key tetap id (auto increment)
-    // kode_produk hanya sebagai kode unik
     protected $fillable = [
         'kode_produk',
         'name',
-        'category',
+        'category_id',
         'base_unit',
         'items_per_package',
         'items_per_bundle',
@@ -23,6 +22,10 @@ class Product extends Model
         'minimum_stock',
         'purchase_price',
         'selling_price',
+    ];
+
+    protected $appends = [
+        'category_name',
     ];
 
     protected function casts(): array
@@ -37,13 +40,17 @@ class Product extends Model
 
     public static function getBaseUnits(): array
     {
-        $fromDb = \App\Models\Category::where('type', 'unit')
+        $fromDb = Category::where('type', 'unit')
             ->orderBy('name')
             ->pluck('name')
             ->toArray();
 
-        // Gabungkan bawaan + dari DB, hilangkan duplikat
         return array_unique(array_merge(self::BASE_UNITS_DEFAULT, $fromDb));
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function purchaseOrderDetails(): HasMany
@@ -64,6 +71,11 @@ class Product extends Model
     public function stockLogs(): HasMany
     {
         return $this->hasMany(StockLog::class, 'kode_produk', 'kode_produk');
+    }
+
+    public function getCategoryNameAttribute(): string
+    {
+        return $this->category?->name ?? '-';
     }
 
     public function getStokMenipisAttribute(): bool

@@ -12,7 +12,12 @@ return new class extends Migration
             $table->bigIncrements('id');
             $table->string('kode_produk', 10)->unique()->nullable();
             $table->string('name');
-            $table->string('category', 100);
+
+            $table->foreignId('category_id')
+                ->constrained('categories')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
+
             $table->string('base_unit', 20);
             $table->integer('items_per_package')->default(1);
             $table->integer('items_per_bundle')->nullable()->default(1);

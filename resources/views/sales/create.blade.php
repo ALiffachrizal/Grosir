@@ -5,7 +5,7 @@
 
 @section('content')
 
-<div x-data="pos({{ $products->toJson() }}, {{ $categories->toJson() }})"
+<div x-data="pos(@js($products), @js($categories))"
      class="flex flex-col gap-4">
 
     {{-- ===== PANEL UTAMA ===== --}}
@@ -32,6 +32,7 @@
                             class="px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all">
                         Semua
                     </button>
+
                     <template x-for="cat in categories" :key="cat.kode_kategori">
                         <button @click="selectedCategory = cat.name"
                                 :class="selectedCategory === cat.name
@@ -52,15 +53,19 @@
                              class="bg-white border border-gray-100 rounded-2xl p-4 cursor-pointer
                                     hover:border-blue-300 hover:shadow-lg hover:shadow-blue-50
                                     transition-all duration-200 group">
+
                             <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center
                                         mx-auto mb-3 group-hover:bg-blue-100 transition-colors">
-                                <span class="text-2xl" x-text="getCategoryIcon(product.category)"></span>
+                                <span class="text-2xl" x-text="getCategoryIcon(getCategoryName(product))"></span>
                             </div>
+
                             <p class="text-sm font-semibold text-gray-800 text-center leading-tight mb-1"
                                x-text="product.name"></p>
+
                             <p class="text-xs text-center mb-2"
                                :class="product.stock <= product.minimum_stock ? 'text-red-400' : 'text-gray-400'"
                                x-text="'Stok: ' + product.stock + ' ' + product.base_unit"></p>
+
                             <p class="text-sm font-bold text-blue-600 text-center"
                                x-text="'Rp ' + formatNumber(product.selling_price)"></p>
                         </div>
@@ -84,11 +89,13 @@
                     <div class="flex items-center gap-2">
                         <span class="text-xl">🛒</span>
                         <h3 class="font-bold text-gray-800">Keranjang</h3>
+
                         <span x-show="cart.length > 0"
                               class="bg-blue-600 text-white text-xs font-bold w-5 h-5 rounded-full
                                      flex items-center justify-center"
                               x-text="cart.length"></span>
                     </div>
+
                     <button @click="clearCart()" x-show="cart.length > 0"
                             class="text-xs text-red-400 hover:text-red-600 transition">
                         🗑️ Kosongkan
@@ -115,9 +122,11 @@
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-semibold text-gray-800 truncate"
                                        x-text="item.name"></p>
+
                                     <p class="text-xs text-gray-400 mt-0.5"
                                        x-text="item.description"></p>
                                 </div>
+
                                 <button @click="removeFromCart(index)"
                                         class="w-5 h-5 rounded-full bg-red-100 hover:bg-red-200
                                                text-red-500 flex items-center justify-center
@@ -125,6 +134,7 @@
                                     ✕
                                 </button>
                             </div>
+
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
                                     <button @click="decreaseQty(index)"
@@ -133,8 +143,10 @@
                                                    text-sm font-bold flex items-center justify-center transition">
                                         −
                                     </button>
+
                                     <span class="text-sm font-bold text-gray-800 w-6 text-center"
                                           x-text="item.quantity"></span>
+
                                     <button @click="increaseQty(index)"
                                             class="w-7 h-7 rounded-lg bg-blue-600 hover:bg-blue-700
                                                    text-white text-sm font-bold
@@ -142,6 +154,7 @@
                                         +
                                     </button>
                                 </div>
+
                                 <p class="text-sm font-bold text-gray-800"
                                    x-text="'Rp ' + formatNumber(item.quantity * item.unit_price)"></p>
                             </div>
@@ -156,6 +169,7 @@
                     <span>Subtotal</span>
                     <span x-text="'Rp ' + formatNumber(totalPrice)"></span>
                 </div>
+
                 <div class="flex justify-between items-center">
                     <span class="font-bold text-gray-800">TOTAL</span>
                     <span class="text-xl font-bold text-gray-900"
@@ -171,8 +185,11 @@
                         <option value="cash">💵 Tunai</option>
                         <option value="transfer">🏦 Transfer</option>
                     </select>
+
                     <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none
-                                text-gray-400 text-xs">▼</div>
+                                text-gray-400 text-xs">
+                        ▼
+                    </div>
                 </div>
 
                 <button @click="checkout()"
@@ -211,15 +228,18 @@
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                            <span x-text="getCategoryIcon(selectedProduct?.category)"></span>
+                            <span x-text="getCategoryIcon(getCategoryName(selectedProduct))"></span>
                         </div>
+
                         <div>
                             <h3 class="font-bold text-gray-800 text-sm"
                                 x-text="selectedProduct?.name"></h3>
+
                             <p class="text-xs text-gray-400"
-                               x-text="selectedProduct?.category"></p>
+                               x-text="getCategoryName(selectedProduct)"></p>
                         </div>
                     </div>
+
                     <button @click="showModal = false"
                             class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200
                                    flex items-center justify-center text-gray-500 transition">
@@ -235,6 +255,7 @@
                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                         Pilih Satuan
                     </p>
+
                     <div class="grid grid-cols-3 gap-2">
 
                         <button @click="selectUnit('base')"
@@ -277,7 +298,10 @@
 
                 {{-- Input Jumlah --}}
                 <div>
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Jumlah</p>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                        Jumlah
+                    </p>
+
                     <div class="flex items-center justify-between bg-gray-50 rounded-xl p-3">
                         <button type="button" @click="modalQty > 1 ? modalQty-- : null"
                                 class="w-10 h-10 rounded-xl bg-white border border-gray-200
@@ -285,8 +309,10 @@
                                        flex items-center justify-center shadow-sm transition select-none">
                             −
                         </button>
+
                         <span class="text-2xl font-bold text-gray-800 w-16 text-center"
                               x-text="modalQty"></span>
+
                         <button type="button" @click="modalQty++"
                                 class="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700
                                        text-white font-bold text-xl
@@ -303,11 +329,13 @@
                         <span class="font-semibold text-gray-800"
                               x-text="totalUnits + ' ' + (selectedProduct?.base_unit || '')"></span>
                     </div>
+
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-500">Harga / Unit</span>
                         <span class="font-semibold text-gray-800"
                               x-text="'Rp ' + formatNumber(unitPrice)"></span>
                     </div>
+
                     <div class="flex justify-between text-sm border-t border-blue-100 pt-2">
                         <span class="font-bold text-gray-700">Subtotal</span>
                         <span class="font-bold text-blue-600 text-base"
@@ -366,26 +394,50 @@ function pos(products, categories) {
 
         get filteredProducts() {
             return this.products.filter(p => {
-                const matchSearch = p.name.toLowerCase().includes(this.search.toLowerCase());
-                const matchCat    = this.selectedCategory === '' || p.category === this.selectedCategory;
+                const productCategory = this.getCategoryName(p);
+
+                const matchSearch = p.name
+                    .toLowerCase()
+                    .includes(this.search.toLowerCase());
+
+                const matchCat = this.selectedCategory === ''
+                    || productCategory === this.selectedCategory;
+
                 return matchSearch && matchCat;
             });
         },
 
         get totalPrice() {
-            return this.cart.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+            return this.cart.reduce((sum, item) => {
+                return sum + (item.quantity * item.unit_price);
+            }, 0);
         },
 
         get totalUnits() {
-            if (!this.selectedProduct) return 0;
-            if (this.selectedUnit === 'base')    return this.modalQty;
-            if (this.selectedUnit === 'package') return this.modalQty * this.selectedProduct.items_per_package;
-            if (this.selectedUnit === 'bundle')  return this.modalQty * this.selectedProduct.items_per_bundle;
+            if (!this.selectedProduct) {
+                return 0;
+            }
+
+            if (this.selectedUnit === 'base') {
+                return this.modalQty;
+            }
+
+            if (this.selectedUnit === 'package') {
+                return this.modalQty * this.selectedProduct.items_per_package;
+            }
+
+            if (this.selectedUnit === 'bundle') {
+                return this.modalQty * this.selectedProduct.items_per_bundle;
+            }
+
             return 0;
         },
 
         get unitPrice() {
-            if (!this.selectedProduct) return 0;
+            if (!this.selectedProduct) {
+                return 0;
+            }
+
             return this.selectedProduct.selling_price;
         },
 
@@ -393,33 +445,70 @@ function pos(products, categories) {
             return new Intl.NumberFormat('id-ID').format(n || 0);
         },
 
+        getCategoryName(product) {
+            if (!product) {
+                return '-';
+            }
+
+            if (product.category && typeof product.category === 'object') {
+                return product.category.name ?? '-';
+            }
+
+            if (product.category && typeof product.category === 'string') {
+                return product.category;
+            }
+
+            if (product.category_name) {
+                return product.category_name;
+            }
+
+            return '-';
+        },
+
         getCategoryIcon(category) {
             const icons = {
-                'Sembako':                '🌾',
-                'Jajanan / Snack':        '🍿',
+                'SEMBAKO': '🌾',
+                'Sembako': '🌾',
+
+                'JAJANAN / SNACK': '🍿',
+                'Jajanan / Snack': '🍿',
+
+                'KEBUTUHAN RUMAH TANGGA': '🧴',
                 'Kebutuhan Rumah Tangga': '🧴',
-                'Minuman':                '🥤',
+
+                'MINUMAN': '🥤',
+                'Minuman': '🥤',
+
+                'BANGUNAN': '🧱',
+                'Bangunan': '🧱',
             };
+
             return icons[category] || '📦';
         },
 
         openModal(product) {
             this.selectedProduct = product;
-            this.selectedUnit    = 'base';
-            this.modalQty        = 1;
-            this.showModal       = true;
+            this.selectedUnit = 'base';
+            this.modalQty = 1;
+            this.showModal = true;
         },
 
         selectUnit(unit) {
             this.selectedUnit = unit;
-            this.modalQty     = 1;
+            this.modalQty = 1;
         },
 
         addToCart() {
-            if (this.totalUnits <= 0) return;
-            if (this.totalUnits > this.selectedProduct.stock) return;
+            if (this.totalUnits <= 0) {
+                return;
+            }
+
+            if (this.totalUnits > this.selectedProduct.stock) {
+                return;
+            }
 
             let description = '';
+
             if (this.selectedUnit === 'base') {
                 description = this.modalQty + ' ' + this.selectedProduct.base_unit;
             } else if (this.selectedUnit === 'package') {
@@ -438,9 +527,9 @@ function pos(products, categories) {
             } else {
                 this.cart.push({
                     kode_produk: this.selectedProduct.kode_produk,
-                    name:        this.selectedProduct.name,
-                    quantity:    this.totalUnits,
-                    unit_price:  this.selectedProduct.selling_price,
+                    name: this.selectedProduct.name,
+                    quantity: this.totalUnits,
+                    unit_price: this.selectedProduct.selling_price,
                     description: description,
                 });
             }
@@ -461,7 +550,10 @@ function pos(products, categories) {
         },
 
         increaseQty(index) {
-            const product = this.products.find(p => p.kode_produk === this.cart[index].kode_produk);
+            const product = this.products.find(
+                p => p.kode_produk === this.cart[index].kode_produk
+            );
+
             const totalInCart = this.cart
                 .filter(i => i.kode_produk === this.cart[index].kode_produk)
                 .reduce((sum, i) => sum + i.quantity, 0);
@@ -481,7 +573,10 @@ function pos(products, categories) {
         },
 
         checkout() {
-            if (this.cart.length === 0) return;
+            if (this.cart.length === 0) {
+                return;
+            }
+
             if (!this.paymentMethod) {
                 alert('Pilih metode pembayaran terlebih dahulu!');
                 return;
@@ -491,22 +586,23 @@ function pos(products, categories) {
             container.innerHTML = '';
 
             const pmInput = document.createElement('input');
-            pmInput.type  = 'hidden';
-            pmInput.name  = 'payment_method';
+            pmInput.type = 'hidden';
+            pmInput.name = 'payment_method';
             pmInput.value = this.paymentMethod;
             container.appendChild(pmInput);
 
             this.cart.forEach((item, index) => {
                 const fields = {
                     [`items[${index}][kode_produk]`]: item.kode_produk,
-                    [`items[${index}][quantity]`]:    item.quantity,
-                    [`items[${index}][unit_price]`]:  item.unit_price,
+                    [`items[${index}][quantity]`]: item.quantity,
+                    [`items[${index}][unit_price]`]: item.unit_price,
                     [`items[${index}][description]`]: item.description,
                 };
+
                 Object.entries(fields).forEach(([name, value]) => {
                     const input = document.createElement('input');
-                    input.type  = 'hidden';
-                    input.name  = name;
+                    input.type = 'hidden';
+                    input.name = name;
                     input.value = value;
                     container.appendChild(input);
                 });

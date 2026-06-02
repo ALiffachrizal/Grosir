@@ -70,7 +70,7 @@
                     </td>
                     <td class="px-5 py-3">
                         <span class="bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                            {{ $product->category }}
+                            {{ $product->category->name ?? '-' }}
                         </span>
                     </td>
                     <td class="px-5 py-3 text-gray-600">{{ $product->base_unit }}</td>

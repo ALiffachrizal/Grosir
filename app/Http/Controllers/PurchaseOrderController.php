@@ -8,13 +8,16 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderDetail;
 use App\Models\Supplier;
 use App\Models\Product;
-use Carbon\Carbon;
 
 class PurchaseOrderController extends Controller
 {
     public function index()
     {
-        $purchaseOrders = PurchaseOrder::with(['supplier', 'user', 'details'])
+        $purchaseOrders = PurchaseOrder::with([
+                'supplier.category',
+                'user',
+                'details.product.category'
+            ])
             ->latest()
             ->get();
 
@@ -23,8 +26,13 @@ class PurchaseOrderController extends Controller
 
     public function create()
     {
-        $suppliers = Supplier::orderBy('name')->get();
-        $products  = Product::orderBy('name')->get();
+        $suppliers = Supplier::with('category')
+            ->orderBy('name')
+            ->get();
+
+        $products = Product::with('category')
+            ->orderBy('name')
+            ->get();
 
         return view('purchase-orders.create', compact('suppliers', 'products'));
     }
@@ -39,8 +47,10 @@ class PurchaseOrderController extends Controller
             'products.*.quantity'    => ['required', 'integer', 'min:1'],
         ], [
             'kode_supplier.required' => 'Supplier wajib dipilih.',
+            'kode_supplier.exists'   => 'Supplier tidak valid.',
             'order_date.required'    => 'Tanggal order wajib diisi.',
             'products.required'      => 'Minimal 1 produk harus dipilih.',
+            'products.min'           => 'Minimal 1 produk harus dipilih.',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -66,7 +76,12 @@ class PurchaseOrderController extends Controller
 
     public function show(PurchaseOrder $purchaseOrder)
     {
-        $purchaseOrder->load(['supplier', 'user', 'details.product']);
+        $purchaseOrder->load([
+            'supplier.category',
+            'user',
+            'details.product.category'
+        ]);
+
         return view('purchase-orders.show', compact('purchaseOrder'));
     }
 }

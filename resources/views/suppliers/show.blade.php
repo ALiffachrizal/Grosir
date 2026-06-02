@@ -17,7 +17,7 @@
                 <div>
                     <h3 class="text-xl font-bold text-gray-800">{{ $supplier->name }}</h3>
                     <span class="bg-green-100 text-green-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                        {{ $supplier->category }}
+                        {{ $supplier->category->name ?? '-' }}
                     </span>
                 </div>
             </div>

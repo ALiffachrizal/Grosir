@@ -7,7 +7,7 @@
 @section('content')
 
 <div class="bg-white rounded-xl shadow p-6"
-     x-data="purchaseOrder({{ $suppliers->toJson() }}, {{ $products->toJson() }})">
+     x-data="purchaseOrder(@js($suppliers), @js($products))">
 
     <form action="{{ route('purchase-orders.store') }}" method="POST" @submit="prepareSubmit">
         @csrf
@@ -20,20 +20,23 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                     Supplier <span class="text-red-500">*</span>
                 </label>
-                <select name="kode_supplier" x-model="selectedSupplierId"
+
+                <select name="kode_supplier"
+                        x-model="selectedSupplierId"
                         @change="filterProducts()"
                         class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm
                                focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">-- Pilih Supplier --</option>
+
                     @foreach($suppliers as $supplier)
-                    <option value="{{ $supplier->kode_supplier }}"
-                            data-category="{{ $supplier->category }}">
-                        {{ $supplier->name }} ({{ $supplier->category }})
-                    </option>
+                        <option value="{{ $supplier->kode_supplier }}">
+                            {{ $supplier->name }} ({{ $supplier->category->name ?? '-' }})
+                        </option>
                     @endforeach
                 </select>
+
                 @error('kode_supplier')
-                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -42,12 +45,15 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">
                     Tanggal Order <span class="text-red-500">*</span>
                 </label>
-                <input type="date" name="order_date"
+
+                <input type="date"
+                       name="order_date"
                        value="{{ old('order_date', date('Y-m-d')) }}"
                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm
                               focus:outline-none focus:ring-2 focus:ring-blue-500">
+
                 @error('order_date')
-                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -77,7 +83,9 @@
         <div class="mb-5">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="font-semibold text-gray-800">Daftar Produk</h3>
-                <button type="button" @click="addRow()"
+
+                <button type="button"
+                        @click="addRow()"
                         x-show="selectedSupplierId && filteredProducts.length > 0"
                         class="flex items-center gap-2 bg-green-600 hover:bg-green-700
                                text-white px-3 py-1.5 rounded-lg text-sm transition">
@@ -97,6 +105,7 @@
                             <th class="text-center px-4 py-2.5 font-medium w-16">Aksi</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         <template x-for="(row, index) in rows" :key="index">
                             <tr class="border-b border-gray-100">
@@ -108,11 +117,13 @@
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg
                                                    text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         <option value="">-- Pilih Produk --</option>
+
                                         <template x-for="product in filteredProducts" :key="product.kode_produk">
                                             <option :value="product.kode_produk"
                                                     x-text="product.name"></option>
                                         </template>
                                     </select>
+
                                     {{-- Info stok --}}
                                     <p x-show="row.kode_produk"
                                        class="text-xs text-gray-400 mt-1"
@@ -123,11 +134,14 @@
                                 {{-- Package --}}
                                 <td class="px-4 py-2">
                                     <div class="flex items-center gap-1">
-                                        <input type="number" x-model.number="row.package"
+                                        <input type="number"
+                                               x-model.number="row.package"
                                                @input="calculateTotal(index)"
-                                               min="0" placeholder="0"
+                                               min="0"
+                                               placeholder="0"
                                                class="w-full px-2 py-2 border border-gray-300 rounded-lg
                                                       text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+
                                         <span class="text-xs text-gray-400 whitespace-nowrap"
                                               x-text="row.package_label || 'Pcs'"></span>
                                     </div>
@@ -136,11 +150,14 @@
                                 {{-- Bundle --}}
                                 <td class="px-4 py-2">
                                     <div class="flex items-center gap-1">
-                                        <input type="number" x-model.number="row.bundle"
+                                        <input type="number"
+                                               x-model.number="row.bundle"
                                                @input="calculateTotal(index)"
-                                               min="0" placeholder="0"
+                                               min="0"
+                                               placeholder="0"
                                                class="w-full px-2 py-2 border border-gray-300 rounded-lg
                                                       text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+
                                         <span class="text-xs text-gray-400">Bndl</span>
                                     </div>
                                 </td>
@@ -148,11 +165,14 @@
                                 {{-- Satuan --}}
                                 <td class="px-4 py-2">
                                     <div class="flex items-center gap-1">
-                                        <input type="number" x-model.number="row.unit"
+                                        <input type="number"
+                                               x-model.number="row.unit"
                                                @input="calculateTotal(index)"
-                                               min="0" placeholder="0"
+                                               min="0"
+                                               placeholder="0"
                                                class="w-full px-2 py-2 border border-gray-300 rounded-lg
                                                       text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+
                                         <span class="text-xs text-gray-400"
                                               x-text="row.base_unit || 'Unit'"></span>
                                     </div>
@@ -169,7 +189,8 @@
 
                                 {{-- Hapus Baris --}}
                                 <td class="px-4 py-2 text-center">
-                                    <button type="button" @click="removeRow(index)"
+                                    <button type="button"
+                                            @click="removeRow(index)"
                                             x-show="rows.length > 1"
                                             class="text-red-400 hover:text-red-600
                                                    hover:bg-red-50 p-1.5 rounded-lg transition">
@@ -210,6 +231,7 @@
                     class="flex-1 py-2.5 rounded-lg text-sm font-semibold transition">
                 Simpan Purchase Order
             </button>
+
             <a href="{{ route('purchase-orders.index') }}"
                class="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700
                       py-2.5 rounded-lg text-sm font-medium transition">
@@ -233,9 +255,15 @@ function purchaseOrder(suppliers, products) {
         filteredProducts: [],
         rows: [
             {
-                kode_produk: '', package: 0, bundle: 0, unit: 0,
-                total: 0, base_unit: '', package_label: '',
-                items_per_package: 1, items_per_bundle: 1,
+                kode_produk: '',
+                package: 0,
+                bundle: 0,
+                unit: 0,
+                total: 0,
+                base_unit: '',
+                package_label: '',
+                items_per_package: 1,
+                items_per_bundle: 1,
                 current_stock: 0
             }
         ],
@@ -244,61 +272,114 @@ function purchaseOrder(suppliers, products) {
             return this.rows.reduce((sum, row) => sum + (row.total || 0), 0);
         },
 
+        getCategoryName(item) {
+            if (!item) {
+                return '';
+            }
+
+            if (item.category_name) {
+                return item.category_name;
+            }
+
+            if (item.category && typeof item.category === 'object') {
+                return item.category.name || '';
+            }
+
+            if (item.category && typeof item.category === 'string') {
+                return item.category;
+            }
+
+            return '';
+        },
+
+        normalize(value) {
+            return (value || '').toString().trim().toUpperCase();
+        },
+
+        resetRows() {
+            this.rows = [
+                {
+                    kode_produk: '',
+                    package: 0,
+                    bundle: 0,
+                    unit: 0,
+                    total: 0,
+                    base_unit: '',
+                    package_label: '',
+                    items_per_package: 1,
+                    items_per_bundle: 1,
+                    current_stock: 0
+                }
+            ];
+        },
+
         filterProducts() {
             if (!this.selectedSupplierId) {
                 this.filteredProducts = [];
                 this.selectedCategory = '';
+                this.resetRows();
                 return;
             }
 
-            // Ambil kategori supplier yang dipilih
-            const supplier = this.suppliers.find(s => s.kode_supplier == this.selectedSupplierId);
-            if (!supplier) {
-                this.filteredProducts = [];
-                return;
-            }
-
-            this.selectedCategory = supplier.category;
-
-            // Filter produk berdasarkan kategori supplier
-            this.filteredProducts = this.products.filter(p =>
-                p.category === supplier.category
+            const supplier = this.suppliers.find(s =>
+                String(s.kode_supplier) === String(this.selectedSupplierId)
             );
 
-            // Reset semua baris
-            this.rows = [{
-                kode_produk: '', package: 0, bundle: 0, unit: 0,
-                total: 0, base_unit: '', package_label: '',
-                items_per_package: 1, items_per_bundle: 1,
-                current_stock: 0
-            }];
+            if (!supplier) {
+                this.filteredProducts = [];
+                this.selectedCategory = '';
+                this.resetRows();
+                return;
+            }
+
+            this.selectedCategory = this.getCategoryName(supplier);
+
+            this.filteredProducts = this.products.filter(product => {
+                const productCategory = this.getCategoryName(product);
+
+                return this.normalize(productCategory) === this.normalize(this.selectedCategory);
+            });
+
+            this.resetRows();
         },
 
         onProductChange(index) {
-            const product = this.products.find(p => p.kode_produk == this.rows[index].kode_produk);
+            const product = this.products.find(p =>
+                String(p.kode_produk) === String(this.rows[index].kode_produk)
+            );
+
             if (product) {
-                this.rows[index].base_unit         = product.base_unit;
+                this.rows[index].base_unit = product.base_unit;
                 this.rows[index].items_per_package = product.items_per_package;
-                this.rows[index].items_per_bundle  = product.items_per_bundle || 1;
-                this.rows[index].package_label     = product.base_unit === 'KG' ? 'Karung' : 'Package';
-                this.rows[index].current_stock     = product.stock;
+                this.rows[index].items_per_bundle = product.items_per_bundle || 1;
+                this.rows[index].package_label = product.base_unit === 'KG' ? 'Karung' : 'Package';
+                this.rows[index].current_stock = product.stock;
             }
+
             this.calculateTotal(index);
         },
 
         calculateTotal(index) {
-            const row         = this.rows[index];
+            const row = this.rows[index];
+
             const fromPackage = (row.package || 0) * (row.items_per_package || 1);
-            const fromBundle  = (row.bundle || 0) * (row.items_per_bundle || 1);
-            const fromUnit    = (row.unit || 0);
-            row.total         = fromPackage + fromBundle + fromUnit;
+            const fromBundle = (row.bundle || 0) * (row.items_per_bundle || 1);
+            const fromUnit = row.unit || 0;
+
+            row.total = fromPackage + fromBundle + fromUnit;
         },
 
         addRow() {
             this.rows.push({
-                kode_produk: '', package: 0, bundle: 0, unit: 0,
-                total: 0, base_unit: '', package_label: '',
-                items_per_package: 1, items_per_bundle: 1,
+                kode_produk: '',
+                package: 0,
+                bundle: 0,
+                unit: 0,
+                total: 0,
+                base_unit: '',
+                package_label: '',
+                items_per_package: 1,
+                items_per_bundle: 1,
                 current_stock: 0
             });
         },
@@ -310,21 +391,21 @@ function purchaseOrder(suppliers, products) {
         },
 
         prepareSubmit() {
-            const container     = document.getElementById('hidden-inputs');
+            const container = document.getElementById('hidden-inputs');
             container.innerHTML = '';
 
             this.rows.forEach((row, index) => {
                 if (row.kode_produk && row.total > 0) {
-                    const kdInput   = document.createElement('input');
-                    kdInput.type    = 'hidden';
-                    kdInput.name    = `products[${index}][kode_produk]`;
-                    kdInput.value   = row.kode_produk;
-                    container.appendChild(kdInput);
+                    const kodeInput = document.createElement('input');
+                    kodeInput.type = 'hidden';
+                    kodeInput.name = `products[${index}][kode_produk]`;
+                    kodeInput.value = row.kode_produk;
+                    container.appendChild(kodeInput);
 
-                    const qtyInput  = document.createElement('input');
-                    qtyInput.type   = 'hidden';
-                    qtyInput.name   = `products[${index}][quantity]`;
-                    qtyInput.value  = row.total;
+                    const qtyInput = document.createElement('input');
+                    qtyInput.type = 'hidden';
+                    qtyInput.name = `products[${index}][quantity]`;
+                    qtyInput.value = row.total;
                     container.appendChild(qtyInput);
                 }
             });

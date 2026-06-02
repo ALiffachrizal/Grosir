@@ -17,7 +17,7 @@
                 </div>
                 <h3 class="text-lg font-bold text-gray-800">{{ $product->name }}</h3>
                 <span class="bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">
-                    {{ $product->category }}
+                    {{ $product->category->name ?? '-' }}
                 </span>
             </div>
 

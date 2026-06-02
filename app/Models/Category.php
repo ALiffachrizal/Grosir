@@ -4,13 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
     use HasFactory;
 
-    // Primary key tetap id (auto increment)
-    // kode_kategori hanya sebagai kode unik
     protected $fillable = [
         'kode_kategori',
         'name',
@@ -25,5 +24,15 @@ class Category extends Model
     public function scopeSupplier($query)
     {
         return $query->where('type', 'supplier');
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function suppliers(): HasMany
+    {
+        return $this->hasMany(Supplier::class);
     }
 }
