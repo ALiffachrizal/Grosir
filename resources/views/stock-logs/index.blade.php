@@ -8,67 +8,103 @@
 
 {{-- Filter --}}
 <div class="bg-white rounded-xl shadow p-5 mb-6">
-    <form method="GET" action="{{ route('stock-logs.index') }}"
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+    <form action="{{ route('stock-logs.index') }}"
+          method="GET"
+          class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 items-end">
 
-        {{-- Filter Produk --}}
-        <div class="lg:col-span-2">
-            <label class="block text-xs font-medium text-gray-500 mb-1">Produk</label>
-            <select name="product_id"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Semua Produk</option>
-                @foreach($products as $product)
-                    <option value="{{ $product->id }}" {{ request('product_id') == $product->id ? 'selected' : '' }}>
-                        {{ $product->name }}
-                    </option>
-                @endforeach
-            </select>
+        {{-- Cari Produk --}}
+        <div class="xl:col-span-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                Cari Produk
+            </label>
+
+            <input type="text"
+                   name="product_search"
+                   value="{{ request('product_search') }}"
+                   placeholder="Masukkan nama atau kode produk..."
+                   class="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm
+                          focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
-        {{-- Filter Tipe --}}
-        <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Tipe</label>
+        {{-- Tipe --}}
+        <div class="xl:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                Tipe
+            </label>
+
             <select name="type"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Semua Tipe</option>
-                <option value="in" {{ request('type') === 'in' ? 'selected' : '' }}>Masuk</option>
-                <option value="out" {{ request('type') === 'out' ? 'selected' : '' }}>Keluar</option>
-                <option value="refund" {{ request('type') === 'refund' ? 'selected' : '' }}>Refund</option>
+                <option value="in" {{ request('type') === 'in' ? 'selected' : '' }}>
+                    Masuk
+                </option>
+                <option value="out" {{ request('type') === 'out' ? 'selected' : '' }}>
+                    Keluar
+                </option>
+                <option value="refund" {{ request('type') === 'refund' ? 'selected' : '' }}>
+                    Refund
+                </option>
             </select>
         </div>
 
-        {{-- Filter Tanggal Dari --}}
-        <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Dari Tanggal</label>
-            <input type="date" name="date_from" value="{{ request('date_from') }}"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        {{-- Dari Tanggal --}}
+        <div class="xl:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                Dari Tanggal
+            </label>
+
+            <input type="date"
+                   name="date_from"
+                   value="{{ request('date_from') }}"
+                   class="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm
+                          focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
-        {{-- Filter Tanggal Sampai --}}
-        <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Sampai Tanggal</label>
-            <input type="date" name="date_to" value="{{ request('date_to') }}"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        {{-- Sampai Tanggal --}}
+        <div class="xl:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                Sampai Tanggal
+            </label>
+
+            <input type="date"
+                   name="date_to"
+                   value="{{ request('date_to') }}"
+                   class="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm
+                          focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
 
         {{-- Tombol --}}
-        <div class="lg:col-span-5 flex gap-2">
+        <div class="xl:col-span-2 flex gap-2">
             <button type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">
+                    class="flex-1 h-11 bg-blue-600 hover:bg-blue-700 text-white
+                           rounded-lg text-sm font-semibold transition">
                 🔍 Filter
             </button>
 
             <a href="{{ route('stock-logs.index') }}"
-               class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium transition">
+               class="flex-1 h-11 flex items-center justify-center bg-gray-100
+                      hover:bg-gray-200 text-gray-700 rounded-lg text-sm
+                      font-medium transition">
                 Reset
             </a>
-
-            @if(request()->hasAny(['product_id', 'type', 'date_from', 'date_to']))
-                <span class="flex items-center text-xs text-blue-600 font-medium">
-                    ✅ Filter aktif — {{ $logs->total() }} hasil
-                </span>
-            @endif
         </div>
+
+        {{-- Informasi Filter Aktif --}}
+        @if(
+            request()->filled('product_search') ||
+            request()->filled('type') ||
+            request()->filled('date_from') ||
+            request()->filled('date_to')
+        )
+            <div class="xl:col-span-12 pt-3 border-t border-gray-100">
+                <div class="flex flex-wrap items-center gap-2 text-sm text-blue-600">
+                    <span>✅ Filter aktif</span>
+                    <span class="text-gray-400">—</span>
+                    <span>{{ $logs->total() }} hasil ditemukan</span>
+                </div>
+            </div>
+        @endif
 
     </form>
 </div>

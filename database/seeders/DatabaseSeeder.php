@@ -8,13 +8,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->command->info('🌱 Menjalankan semua seeder...');
-
         $this->call([
             UserSeeder::class,
             CategorySeeder::class,
+            SupplierSeeder::class,
+            ProductSeeder::class,
         ]);
-
-        $this->command->info('🎉 Semua seeder selesai!');
     }
 }

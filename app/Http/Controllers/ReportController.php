@@ -143,71 +143,81 @@ class ReportController extends Controller
     }
 
     /**
-     * Export Penjualan PDF
-     */
-    public function exportSalesPdf(Request $request)
-    {
-        $filter = $request->filter ?? 'this_month';
-        $dateFrom = $this->getDateFrom($filter, $request->date_from);
-        $dateTo = $this->getDateTo($filter, $request->date_to);
+ * Export Penjualan PDF
+ */
+public function exportSalesPdf(Request $request)
+{
+    $filter = $request->filter ?? 'this_month';
 
-        $sales = Sale::with([
-                'details.product.category',
-                'user',
-                'refunds.product.category',
-            ])
-            ->whereBetween('date', [
-                $dateFrom->toDateString(),
-                $dateTo->toDateString(),
-            ])
-            ->latest()
-            ->get();
+    $dateFrom = $this->getDateFrom(
+        $filter,
+        $request->date_from
+    );
 
-        $totalSales = $sales->sum('total_price');
-        $totalRefundNominal = 0;
+    $dateTo = $this->getDateTo(
+        $filter,
+        $request->date_to
+    );
 
-        foreach ($sales as $sale) {
-            foreach ($sale->refunds as $refund) {
-                $saleDetail = $sale->details
-                    ->where('kode_produk', $refund->kode_produk)
-                    ->first();
+    $sales = Sale::with([
+            'details.product.category',
+            'user',
+            'refunds.product.category',
+        ])
+        ->whereBetween('date', [
+            $dateFrom->toDateString(),
+            $dateTo->toDateString(),
+        ])
+        ->latest()
+        ->get();
 
-                if ($saleDetail) {
-                    $totalRefundNominal += $refund->quantity * $saleDetail->unit_price;
-                }
+    $totalSales = $sales->sum('total_price');
+
+    $totalRefundNominal = 0;
+
+    foreach ($sales as $sale) {
+        foreach ($sale->refunds as $refund) {
+            $saleDetail = $sale->details
+                ->where('kode_produk', $refund->kode_produk)
+                ->first();
+
+            if ($saleDetail) {
+                $totalRefundNominal +=
+                    $refund->quantity * $saleDetail->unit_price;
             }
         }
-
-        $totalRefunds = $sales->sum(function ($sale) {
-            return $sale->refunds->count();
-        });
-
-        $totalRefundQty = $sales->sum(function ($sale) {
-            return $sale->refunds->sum('quantity');
-        });
-
-        $netRevenue = $totalSales - $totalRefundNominal;
-
-        $pdf = Pdf::loadView('reports.sales-pdf', compact(
-            'sales',
-            'totalSales',
-            'totalRefunds',
-            'totalRefundQty',
-            'totalRefundNominal',
-            'netRevenue',
-            'dateFrom',
-            'dateTo'
-        ))->setPaper('a4', 'landscape');
-
-        $filename = 'laporan-penjualan-' .
-            $dateFrom->format('Y-m-d') .
-            '-sd-' .
-            $dateTo->format('Y-m-d') .
-            '.pdf';
-
-        return $pdf->download($filename);
     }
 
+    $totalRefunds = $sales->sum(function ($sale) {
+        return $sale->refunds->count();
+    });
+
+    $totalRefundQty = $sales->sum(function ($sale) {
+        return $sale->refunds->sum('quantity');
+    });
+
+    $netRevenue = $totalSales - $totalRefundNominal;
+
+    $pdf = Pdf::loadView('reports.sales-pdf', compact(
+        'sales',
+        'totalSales',
+        'totalRefunds',
+        'totalRefundQty',
+        'totalRefundNominal',
+        'netRevenue',
+        'dateFrom',
+        'dateTo'
+    ))->setPaper('a4', 'landscape');
+
+    $filename = 'laporan-penjualan-' .
+        $dateFrom->format('Y-m-d') .
+        '-sd-' .
+        $dateTo->format('Y-m-d') .
+        '.pdf';
+
+    // Membuka PDF di browser terlebih dahulu
+    return $pdf->stream($filename);
+}
     /**
      * Export Penjualan Excel
      */

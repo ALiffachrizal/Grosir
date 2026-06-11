@@ -11,22 +11,46 @@ use App\Models\StockLog;
 class ProductController extends Controller
 {
     public function index(Request $request)
-    {
-        $query = Product::with('category')->orderBy('name');
+{
+    $query = Product::with('category');
 
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-
-        if ($request->filled('low_stock')) {
-            $query->whereColumn('stock', '<=', 'minimum_stock');
-        }
-
-        $products = $query->get();
-        $productCategories = Category::product()->orderBy('name')->get();
-
-        return view('products.index', compact('products', 'productCategories'));
+    /*
+    |--------------------------------------------------------------------------
+    | Filter kategori
+    |--------------------------------------------------------------------------
+    | Filter menggunakan category_id karena Product sekarang memiliki relasi
+    | belongsTo ke Category melalui kolom category_id.
+    */
+    if ($request->filled('category_id')) {
+        $query->where('category_id', $request->category_id);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Filter status stok
+    |--------------------------------------------------------------------------
+    */
+    if ($request->stock_status === 'menipis') {
+        $query->whereColumn('stock', '<=', 'minimum_stock');
+    }
+
+    if ($request->stock_status === 'aman') {
+        $query->whereColumn('stock', '>', 'minimum_stock');
+    }
+
+    $products = $query
+        ->orderBy('name')
+        ->get();
+
+    $productCategories = Category::product()
+        ->orderBy('name')
+        ->get();
+
+    return view('products.index', compact(
+        'products',
+        'productCategories'
+    ));
+}
 
     public function create()
     {

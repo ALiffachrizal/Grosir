@@ -9,41 +9,37 @@ use App\Models\Product;
 class StockLogController extends Controller
 {
     public function index(Request $request)
-    {
-        $query = StockLog::with(['product.category', 'user'])->latest();
+{
+    $query = StockLog::with(['product', 'user'])->latest();
 
-        // Filter berdasarkan produk
-        // Di form yang dikirim adalah product_id,
-        // sedangkan tabel stock_logs menyimpan kode_produk.
-        if ($request->filled('product_id')) {
-            $product = Product::find($request->product_id);
+    // Cari berdasarkan nama atau kode produk
+    if ($request->filled('product_search')) {
+        $search = $request->product_search;
 
-            if ($product) {
-                $query->where('kode_produk', $product->kode_produk);
-            }
-        }
-
-        // Filter berdasarkan tipe perubahan stok
-        if ($request->filled('type')) {
-            $query->where('type', $request->type);
-        }
-
-        // Filter berdasarkan tanggal mulai
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
-
-        // Filter berdasarkan tanggal akhir
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
-
-        $logs = $query->paginate(20)->withQueryString();
-
-        $products = Product::with('category')
-            ->orderBy('name')
-            ->get();
-
-        return view('stock-logs.index', compact('logs', 'products'));
+        $query->whereHas('product', function ($productQuery) use ($search) {
+            $productQuery
+                ->where('name', 'like', '%' . $search . '%')
+                ->orWhere('kode_produk', 'like', '%' . $search . '%');
+        });
     }
+
+    // Filter tipe
+    if ($request->filled('type')) {
+        $query->where('type', $request->type);
+    }
+
+    // Filter tanggal mulai
+    if ($request->filled('date_from')) {
+        $query->whereDate('created_at', '>=', $request->date_from);
+    }
+
+    // Filter tanggal akhir
+    if ($request->filled('date_to')) {
+        $query->whereDate('created_at', '<=', $request->date_to);
+    }
+
+    $logs = $query->paginate(20)->withQueryString();
+
+    return view('stock-logs.index', compact('logs'));
+}
 }
