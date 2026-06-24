@@ -2,20 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Sale;
-use App\Models\Product;
-use App\Models\Category;
 use App\Exports\SalesExport;
 use App\Exports\StockExport;
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\Sale;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Maatwebsite\Excel\Facades\Excel;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
 {
     /**
-     * Laporan Stok
+     * Menampilkan laporan stok.
      */
     public function stock()
     {
@@ -25,9 +27,11 @@ class ReportController extends Controller
             ->orderBy('name')
             ->get();
 
-        $lowStockCount = $products->filter(function ($product) {
-            return $product->stok_menipis;
-        })->count();
+        $lowStockCount = $products
+            ->filter(function ($product) {
+                return $product->stok_menipis;
+            })
+            ->count();
 
         $productCategories = Category::product()
             ->orderBy('name')
@@ -41,23 +45,193 @@ class ReportController extends Controller
     }
 
     /**
-     * Export Stok Excel
+     * Mengekspor laporan stok ke Excel.
      */
     public function exportStockExcel()
     {
-        $filename = 'laporan-stok-' . Carbon::now()->format('Y-m-d') . '.xlsx';
+        $filename = 'laporan-stok-' .
+            Carbon::now()->format('Y-m-d') .
+            '.xlsx';
 
-        return Excel::download(new StockExport, $filename);
+        return Excel::download(
+            new StockExport(),
+            $filename
+        );
     }
 
     /**
-     * Laporan Penjualan
+     * Menampilkan laporan penjualan.
      */
     public function sales(Request $request)
     {
-        $filter = $request->filter ?? 'this_month';
-        $dateFrom = null;
-        $dateTo = null;
+        $validated = $this->validateSalesReportRequest(
+            $request
+        );
+
+        [
+            $filter,
+            $dateFrom,
+            $dateTo,
+        ] = $this->resolveSalesDateRange($validated);
+
+        $sales = $this->getSales(
+            $dateFrom,
+            $dateTo
+        );
+
+        $summary = $this->calculateSalesSummary(
+            $sales
+        );
+
+        return view('reports.sales', array_merge(
+            [
+                'sales' => $sales,
+                'filter' => $filter,
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+            ],
+            $summary
+        ));
+    }
+
+    /**
+     * Membuka laporan penjualan PDF di browser.
+     */
+    public function exportSalesPdf(Request $request)
+    {
+        $validated = $this->validateSalesReportRequest(
+            $request
+        );
+
+        [
+            $filter,
+            $dateFrom,
+            $dateTo,
+        ] = $this->resolveSalesDateRange($validated);
+
+        $sales = $this->getSales(
+            $dateFrom,
+            $dateTo
+        );
+
+        $summary = $this->calculateSalesSummary(
+            $sales
+        );
+
+        $pdf = Pdf::loadView(
+            'reports.sales-pdf',
+            array_merge(
+                [
+                    'sales' => $sales,
+                    'filter' => $filter,
+                    'dateFrom' => $dateFrom,
+                    'dateTo' => $dateTo,
+                ],
+                $summary
+            )
+        )->setPaper('a4', 'landscape');
+
+        $filename =
+            'laporan-penjualan-' .
+            $dateFrom->format('Y-m-d') .
+            '-sd-' .
+            $dateTo->format('Y-m-d') .
+            '.pdf';
+
+        /*
+        |--------------------------------------------------------------------------
+        | PDF dibuka terlebih dahulu di browser
+        |--------------------------------------------------------------------------
+        */
+        return $pdf->stream($filename);
+    }
+
+    /**
+     * Mengekspor laporan penjualan ke Excel.
+     */
+    public function exportSalesExcel(Request $request)
+    {
+        $validated = $this->validateSalesReportRequest(
+            $request
+        );
+
+        [
+            $filter,
+            $dateFrom,
+            $dateTo,
+        ] = $this->resolveSalesDateRange($validated);
+
+        $filename =
+            'laporan-penjualan-' .
+            $dateFrom->format('Y-m-d') .
+            '-sd-' .
+            $dateTo->format('Y-m-d') .
+            '.xlsx';
+
+        return Excel::download(
+            new SalesExport($dateFrom, $dateTo),
+            $filename
+        );
+    }
+
+    /**
+     * Memvalidasi filter dan tanggal laporan penjualan.
+     */
+    private function validateSalesReportRequest(
+        Request $request
+    ): array {
+        return $request->validate([
+            'filter' => [
+                'nullable',
+                Rule::in([
+                    'today',
+                    'this_month',
+                    'this_year',
+                    'custom',
+                ]),
+            ],
+
+            'date_from' => [
+                'required_if:filter,custom',
+                'nullable',
+                'date_format:Y-m-d',
+            ],
+
+            'date_to' => [
+                'required_if:filter,custom',
+                'nullable',
+                'date_format:Y-m-d',
+                'after_or_equal:date_from',
+            ],
+        ], [
+            'filter.in' =>
+                'Filter periode laporan tidak valid.',
+
+            'date_from.required_if' =>
+                'Tanggal awal wajib diisi untuk rentang manual.',
+
+            'date_from.date_format' =>
+                'Format tanggal awal tidak valid.',
+
+            'date_to.required_if' =>
+                'Tanggal akhir wajib diisi untuk rentang manual.',
+
+            'date_to.date_format' =>
+                'Format tanggal akhir tidak valid.',
+
+            'date_to.after_or_equal' =>
+                'Tanggal akhir tidak boleh sebelum tanggal awal.',
+        ]);
+    }
+
+    /**
+     * Menentukan tanggal awal dan akhir berdasarkan filter.
+     */
+    private function resolveSalesDateRange(
+        array $validated
+    ): array {
+        $filter = $validated['filter']
+            ?? 'this_month';
 
         switch ($filter) {
             case 'today':
@@ -65,202 +239,194 @@ class ReportController extends Controller
                 $dateTo = Carbon::today();
                 break;
 
-            case 'this_month':
-                $dateFrom = Carbon::now()->startOfMonth();
-                $dateTo = Carbon::now()->endOfMonth();
-                break;
-
             case 'this_year':
-                $dateFrom = Carbon::now()->startOfYear();
-                $dateTo = Carbon::now()->endOfYear();
+                $dateFrom = Carbon::now()
+                    ->startOfYear();
+
+                $dateTo = Carbon::now()
+                    ->endOfYear();
                 break;
 
             case 'custom':
-                $dateFrom = $request->date_from
-                    ? Carbon::parse($request->date_from)
-                    : Carbon::now()->startOfMonth();
+                $dateFrom = Carbon::createFromFormat(
+                    'Y-m-d',
+                    $validated['date_from']
+                )->startOfDay();
 
-                $dateTo = $request->date_to
-                    ? Carbon::parse($request->date_to)
-                    : Carbon::now()->endOfMonth();
+                $dateTo = Carbon::createFromFormat(
+                    'Y-m-d',
+                    $validated['date_to']
+                )->endOfDay();
                 break;
 
+            case 'this_month':
             default:
-                $dateFrom = Carbon::now()->startOfMonth();
-                $dateTo = Carbon::now()->endOfMonth();
+                $filter = 'this_month';
+
+                $dateFrom = Carbon::now()
+                    ->startOfMonth();
+
+                $dateTo = Carbon::now()
+                    ->endOfMonth();
                 break;
         }
 
-        $sales = Sale::with([
-                'details.product.category',
-                'user',
-                'refunds.product.category',
-            ])
+        return [
+            $filter,
+            $dateFrom,
+            $dateTo,
+        ];
+    }
+
+    /**
+     * Mengambil penjualan berdasarkan periode laporan.
+     */
+    private function getSales(
+        Carbon $dateFrom,
+        Carbon $dateTo
+    ): Collection {
+        return Sale::with([
+            'details.product.category',
+            'user',
+            'refunds.product.category',
+        ])
             ->whereBetween('date', [
                 $dateFrom->toDateString(),
                 $dateTo->toDateString(),
             ])
             ->latest()
             ->get();
+    }
 
-        $totalSales = $sales->sum('total_price');
+    /**
+     * Menghitung seluruh ringkasan laporan penjualan.
+     */
+    private function calculateSalesSummary(
+        Collection $sales
+    ): array {
+        $totalSales = (float) $sales->sum(
+            'total_price'
+        );
 
         $totalRefundNominal = 0;
+        $totalRefundQty = 0;
+        $totalRefunds = 0;
 
         foreach ($sales as $sale) {
-            foreach ($sale->refunds as $refund) {
-                $saleDetail = $sale->details
-                    ->where('kode_produk', $refund->kode_produk)
-                    ->first();
+            $saleRefundNominal =
+                $this->calculateSaleRefundNominal($sale);
 
-                if ($saleDetail) {
-                    $totalRefundNominal += $refund->quantity * $saleDetail->unit_price;
-                }
+            $saleRefundQuantity = (int) $sale
+                ->refunds
+                ->sum('quantity');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Simpan hasil per transaksi
+            |--------------------------------------------------------------------------
+            |
+            | Nilai ini nanti dapat langsung digunakan oleh view web dan PDF,
+            | sehingga view tidak perlu menghitung refund berulang kali.
+            |
+            */
+            $sale->setAttribute(
+                'refund_nominal',
+                $saleRefundNominal
+            );
+
+            $sale->setAttribute(
+                'refund_quantity',
+                $saleRefundQuantity
+            );
+
+            $sale->setAttribute(
+                'net_revenue',
+                (float) $sale->total_price -
+                    $saleRefundNominal
+            );
+
+            $totalRefundNominal +=
+                $saleRefundNominal;
+
+            $totalRefundQty +=
+                $saleRefundQuantity;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Hitung transaksi refund secara unik
+            |--------------------------------------------------------------------------
+            |
+            | Satu transaksi yang memiliki beberapa record refund tetap
+            | dihitung sebagai satu transaksi refund.
+            |
+            */
+            if ($sale->refunds->isNotEmpty()) {
+                $totalRefunds++;
             }
         }
 
-        $totalRefunds = $sales->sum(function ($sale) {
-            return $sale->refunds->count();
-        });
+        $netRevenue =
+            $totalSales - $totalRefundNominal;
 
-        $totalRefundQty = $sales->sum(function ($sale) {
-            return $sale->refunds->sum('quantity');
-        });
+        return [
+            'totalSales' => $totalSales,
 
-        $netRevenue = $totalSales - $totalRefundNominal;
+            /*
+             * Jumlah transaksi penjualan yang memiliki refund.
+             */
+            'totalRefunds' => $totalRefunds,
 
-        return view('reports.sales', compact(
-            'sales',
-            'totalSales',
-            'totalRefunds',
-            'totalRefundQty',
-            'totalRefundNominal',
-            'netRevenue',
-            'filter',
-            'dateFrom',
-            'dateTo'
-        ));
+            /*
+             * Total jumlah unit barang yang direfund.
+             */
+            'totalRefundQty' => $totalRefundQty,
+
+            /*
+             * Total nilai rupiah barang yang direfund.
+             */
+            'totalRefundNominal' =>
+                $totalRefundNominal,
+
+            /*
+             * Penjualan kotor dikurangi nominal refund.
+             */
+            'netRevenue' => $netRevenue,
+        ];
     }
 
     /**
- * Export Penjualan PDF
- */
-public function exportSalesPdf(Request $request)
-{
-    $filter = $request->filter ?? 'this_month';
+     * Menghitung nominal refund pada satu transaksi.
+     */
+    private function calculateSaleRefundNominal(
+        Sale $sale
+    ): float {
+        $refundNominal = 0;
 
-    $dateFrom = $this->getDateFrom(
-        $filter,
-        $request->date_from
-    );
-
-    $dateTo = $this->getDateTo(
-        $filter,
-        $request->date_to
-    );
-
-    $sales = Sale::with([
-            'details.product.category',
-            'user',
-            'refunds.product.category',
-        ])
-        ->whereBetween('date', [
-            $dateFrom->toDateString(),
-            $dateTo->toDateString(),
-        ])
-        ->latest()
-        ->get();
-
-    $totalSales = $sales->sum('total_price');
-
-    $totalRefundNominal = 0;
-
-    foreach ($sales as $sale) {
         foreach ($sale->refunds as $refund) {
+            /*
+            |--------------------------------------------------------------------------
+            | Cari harga produk pada transaksi aslinya
+            |--------------------------------------------------------------------------
+            |
+            | Harga refund harus menggunakan harga saat transaksi penjualan,
+            | bukan harga produk terbaru pada tabel products.
+            |
+            */
             $saleDetail = $sale->details
-                ->where('kode_produk', $refund->kode_produk)
-                ->first();
+                ->firstWhere(
+                    'kode_produk',
+                    $refund->kode_produk
+                );
 
-            if ($saleDetail) {
-                $totalRefundNominal +=
-                    $refund->quantity * $saleDetail->unit_price;
+            if (!$saleDetail) {
+                continue;
             }
+
+            $refundNominal +=
+                (int) $refund->quantity
+                * (float) $saleDetail->unit_price;
         }
-    }
 
-    $totalRefunds = $sales->sum(function ($sale) {
-        return $sale->refunds->count();
-    });
-
-    $totalRefundQty = $sales->sum(function ($sale) {
-        return $sale->refunds->sum('quantity');
-    });
-
-    $netRevenue = $totalSales - $totalRefundNominal;
-
-    $pdf = Pdf::loadView('reports.sales-pdf', compact(
-        'sales',
-        'totalSales',
-        'totalRefunds',
-        'totalRefundQty',
-        'totalRefundNominal',
-        'netRevenue',
-        'dateFrom',
-        'dateTo'
-    ))->setPaper('a4', 'landscape');
-
-    $filename = 'laporan-penjualan-' .
-        $dateFrom->format('Y-m-d') .
-        '-sd-' .
-        $dateTo->format('Y-m-d') .
-        '.pdf';
-
-    // Membuka PDF di browser terlebih dahulu
-    return $pdf->stream($filename);
-}
-    /**
-     * Export Penjualan Excel
-     */
-    public function exportSalesExcel(Request $request)
-    {
-        $filter = $request->filter ?? 'this_month';
-        $dateFrom = $this->getDateFrom($filter, $request->date_from);
-        $dateTo = $this->getDateTo($filter, $request->date_to);
-
-        $filename = 'laporan-penjualan-' .
-            $dateFrom->format('Y-m-d') .
-            '-sd-' .
-            $dateTo->format('Y-m-d') .
-            '.xlsx';
-
-        return Excel::download(new SalesExport($dateFrom, $dateTo), $filename);
-    }
-
-    /**
-     * Helper: get date from
-     */
-    private function getDateFrom($filter, $customDate = null): Carbon
-    {
-        return match ($filter) {
-            'today' => Carbon::today(),
-            'this_month' => Carbon::now()->startOfMonth(),
-            'this_year' => Carbon::now()->startOfYear(),
-            'custom' => $customDate ? Carbon::parse($customDate) : Carbon::now()->startOfMonth(),
-            default => Carbon::now()->startOfMonth(),
-        };
-    }
-
-    /**
-     * Helper: get date to
-     */
-    private function getDateTo($filter, $customDate = null): Carbon
-    {
-        return match ($filter) {
-            'today' => Carbon::today(),
-            'this_month' => Carbon::now()->endOfMonth(),
-            'this_year' => Carbon::now()->endOfYear(),
-            'custom' => $customDate ? Carbon::parse($customDate) : Carbon::now()->endOfMonth(),
-            default => Carbon::now()->endOfMonth(),
-        };
+        return $refundNominal;
     }
 }

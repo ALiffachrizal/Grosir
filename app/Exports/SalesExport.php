@@ -42,15 +42,17 @@ class SalesExport implements
     }
 
     /**
-     * Mengambil data penjualan sesuai periode.
+     * Mengambil data penjualan sesuai periode laporan.
      */
     public function collection(): Collection
     {
+        $this->number = 0;
+
         $this->sales = Sale::with([
-                'details.product',
-                'refunds',
-                'user',
-            ])
+            'details.product',
+            'refunds',
+            'user',
+        ])
             ->whereBetween('date', [
                 $this->dateFrom->toDateString(),
                 $this->dateTo->toDateString(),
@@ -62,7 +64,7 @@ class SalesExport implements
     }
 
     /**
-     * Judul kolom Excel.
+     * Judul setiap kolom Excel.
      */
     public function headings(): array
     {
@@ -72,10 +74,10 @@ class SalesExport implements
             'Tanggal',
             'Produk',
             'Metode Pembayaran',
-            'Total Kotor (Rp)',
-            'Refund (Rp)',
-            'Total Bersih (Rp)',
-            'Refund (Unit)',
+            'Penjualan Kotor (Rp)',
+            'Nominal Refund (Rp)',
+            'Penjualan Bersih (Rp)',
+            'Jumlah Unit Refund',
             'Kasir',
         ];
     }
@@ -91,6 +93,9 @@ class SalesExport implements
         |--------------------------------------------------------------------------
         | Daftar produk transaksi
         |--------------------------------------------------------------------------
+        |
+        | Setiap produk ditampilkan pada baris baru di dalam satu sel Excel.
+        |
         */
         $products = $sale->details
             ->map(function ($detail) {
@@ -100,46 +105,49 @@ class SalesExport implements
                 $baseUnit = $detail->product->base_unit
                     ?? 'unit';
 
-                return $productName
+                $description = trim(
+                    (string) $detail->description
+                );
+
+                $text = $productName
                     . ' ('
                     . $detail->quantity
                     . ' '
                     . $baseUnit
                     . ')';
+
+                if ($description !== '') {
+                    $text .= ' - ' . $description;
+                }
+
+                return $text;
             })
-            ->implode(', ');
+            ->implode("\n");
 
         /*
         |--------------------------------------------------------------------------
-        | Hitung nominal refund transaksi
+        | Nominal refund
         |--------------------------------------------------------------------------
         */
-        $refundNominal = $this->calculateRefundNominal($sale);
+        $refundNominal = $this->calculateRefundNominal(
+            $sale
+        );
 
         /*
         |--------------------------------------------------------------------------
-        | Hitung jumlah unit refund
+        | Jumlah unit refund
         |--------------------------------------------------------------------------
         */
-        $refundQuantity = (int) $sale->refunds->sum('quantity');
+        $refundQuantity = (int) $sale->refunds
+            ->sum('quantity');
 
         /*
         |--------------------------------------------------------------------------
-        | Total bersih setelah dikurangi refund
+        | Penjualan bersih
         |--------------------------------------------------------------------------
         */
-        $totalBersih = (float) $sale->total_price - $refundNominal;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Nama metode pembayaran
-        |--------------------------------------------------------------------------
-        */
-        $paymentMethod = match ($sale->payment_method) {
-            'cash' => 'Tunai',
-            'transfer' => 'Transfer',
-            default => ucfirst((string) $sale->payment_method),
-        };
+        $netRevenue = (float) $sale->total_price
+            - $refundNominal;
 
         return [
             $this->number,
@@ -151,22 +159,19 @@ class SalesExport implements
                 STR_PAD_LEFT
             ),
 
-            Carbon::parse($sale->date)->format('d/m/Y'),
+            Carbon::parse($sale->date)
+                ->format('d/m/Y'),
 
             $products,
 
-            $paymentMethod,
+            $sale->payment_method_label,
 
-            // Penjualan sebelum dikurangi refund
             (float) $sale->total_price,
 
-            // Nominal barang yang direfund
             $refundNominal,
 
-            // Total akhir setelah dikurangi refund
-            $totalBersih,
+            $netRevenue,
 
-            // Jumlah barang yang direfund
             $refundQuantity,
 
             $sale->user->username ?? '-',
@@ -175,9 +180,13 @@ class SalesExport implements
 
     /**
      * Menghitung nominal refund pada satu transaksi.
+     *
+     * Harga refund menggunakan harga ketika transaksi terjadi,
+     * bukan harga produk terbaru pada tabel products.
      */
-    private function calculateRefundNominal($sale): float
-    {
+    private function calculateRefundNominal(
+        Sale $sale
+    ): float {
         $refundNominal = 0;
 
         foreach ($sale->refunds as $refund) {
@@ -187,38 +196,33 @@ class SalesExport implements
                     $refund->kode_produk
                 );
 
-            if ($saleDetail) {
-                $refundNominal +=
-                    (float) $refund->quantity
-                    * (float) $saleDetail->unit_price;
+            if (!$saleDetail) {
+                continue;
             }
+
+            $refundNominal +=
+                (int) $refund->quantity
+                * (float) $saleDetail->unit_price;
         }
 
         return $refundNominal;
     }
 
     /**
-     * Format kolom angka.
+     * Format angka pada kolom Excel.
      */
     public function columnFormats(): array
     {
         return [
-            // Total Kotor
             'F' => '"Rp " #,##0',
-
-            // Refund
             'G' => '"Rp " #,##0',
-
-            // Total Bersih
             'H' => '"Rp " #,##0',
-
-            // Refund Unit
             'I' => '#,##0',
         ];
     }
 
     /**
-     * Style baris judul.
+     * Style baris heading.
      */
     public function styles(Worksheet $sheet): array
     {
@@ -239,8 +243,11 @@ class SalesExport implements
                 ],
 
                 'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER,
+                    'horizontal' =>
+                        Alignment::HORIZONTAL_CENTER,
+
+                    'vertical' =>
+                        Alignment::VERTICAL_CENTER,
                 ],
             ],
         ];
@@ -255,7 +262,7 @@ class SalesExport implements
     }
 
     /**
-     * Mengatur baris total, tampilan, dan pengaturan print.
+     * Mengatur total, tampilan tabel, dan pengaturan cetak.
      */
     public function registerEvents(): array
     {
@@ -265,55 +272,62 @@ class SalesExport implements
 
                 /*
                 |--------------------------------------------------------------------------
-                | Menentukan posisi baris
+                | Posisi baris
                 |--------------------------------------------------------------------------
+                |
+                | Baris pertama adalah heading. Jika tidak ada transaksi,
+                | total tetap ditulis pada baris kedua.
+                |
                 */
-                $lastDataRow = $sheet->getHighestRow();
+                $lastDataRow = max(
+                    1,
+                    $sheet->getHighestRow()
+                );
+
                 $totalRow = $lastDataRow + 1;
 
                 /*
                 |--------------------------------------------------------------------------
-                | Hitung total penjualan kotor
+                | Ringkasan keseluruhan
                 |--------------------------------------------------------------------------
                 */
-                $totalKotor = (float) $this->sales->sum(
-                    'total_price'
-                );
+                $totalGrossSales = (float) $this->sales
+                    ->sum('total_price');
 
-                /*
-                |--------------------------------------------------------------------------
-                | Hitung total nominal refund
-                |--------------------------------------------------------------------------
-                */
-                $totalRefundNominal = 0;
+                $totalRefundNominal = (float) $this->sales
+                    ->sum(function (Sale $sale) {
+                        return $this->calculateRefundNominal(
+                            $sale
+                        );
+                    });
 
-                foreach ($this->sales as $sale) {
-                    $totalRefundNominal +=
-                        $this->calculateRefundNominal($sale);
-                }
+                $totalNetRevenue = $totalGrossSales
+                    - $totalRefundNominal;
 
-                /*
-                |--------------------------------------------------------------------------
-                | Hitung total bersih
-                |--------------------------------------------------------------------------
-                */
-                $totalBersih =
-                    $totalKotor - $totalRefundNominal;
-
-                /*
-                |--------------------------------------------------------------------------
-                | Hitung total unit refund
-                |--------------------------------------------------------------------------
-                */
                 $totalRefundQuantity = (int) $this->sales
-                    ->sum(function ($sale) {
+                    ->sum(function (Sale $sale) {
                         return $sale->refunds
                             ->sum('quantity');
                     });
 
                 /*
                 |--------------------------------------------------------------------------
-                | Buat baris total
+                | Jumlah transaksi refund
+                |--------------------------------------------------------------------------
+                |
+                | Satu transaksi yang memiliki beberapa record refund
+                | tetap dihitung sebagai satu transaksi refund.
+                |
+                */
+                $totalRefundTransactions = $this->sales
+                    ->filter(function (Sale $sale) {
+                        return $sale->refunds->isNotEmpty();
+                    })
+                    ->count();
+
+                /*
+                |--------------------------------------------------------------------------
+                | Baris total
                 |--------------------------------------------------------------------------
                 */
                 $sheet->mergeCells(
@@ -327,7 +341,7 @@ class SalesExport implements
 
                 $sheet->setCellValue(
                     "F{$totalRow}",
-                    $totalKotor
+                    $totalGrossSales
                 );
 
                 $sheet->setCellValue(
@@ -337,7 +351,7 @@ class SalesExport implements
 
                 $sheet->setCellValue(
                     "H{$totalRow}",
-                    $totalBersih
+                    $totalNetRevenue
                 );
 
                 $sheet->setCellValue(
@@ -347,7 +361,8 @@ class SalesExport implements
 
                 $sheet->setCellValue(
                     "J{$totalRow}",
-                    ''
+                    $totalRefundTransactions
+                        . ' transaksi refund'
                 );
 
                 /*
@@ -374,7 +389,9 @@ class SalesExport implements
 
                     'borders' => [
                         'top' => [
-                            'borderStyle' => Border::BORDER_MEDIUM,
+                            'borderStyle' =>
+                                Border::BORDER_MEDIUM,
+
                             'color' => [
                                 'argb' => 'FF1E293B',
                             ],
@@ -384,7 +401,7 @@ class SalesExport implements
 
                 /*
                 |--------------------------------------------------------------------------
-                | Warnai kolom refund pada baris total
+                | Warna nominal refund
                 |--------------------------------------------------------------------------
                 */
                 $sheet->getStyle("G{$totalRow}")
@@ -394,7 +411,7 @@ class SalesExport implements
 
                 /*
                 |--------------------------------------------------------------------------
-                | Warnai total bersih pada baris total
+                | Warna penjualan bersih
                 |--------------------------------------------------------------------------
                 */
                 $sheet->getStyle("H{$totalRow}")
@@ -404,7 +421,7 @@ class SalesExport implements
 
                 /*
                 |--------------------------------------------------------------------------
-                | Format Rupiah
+                | Format angka
                 |--------------------------------------------------------------------------
                 */
                 $sheet->getStyle("F2:H{$totalRow}")
@@ -441,64 +458,59 @@ class SalesExport implements
                 |--------------------------------------------------------------------------
                 */
                 $sheet->getRowDimension(1)
-                    ->setRowHeight(26);
+                    ->setRowHeight(30);
 
                 $sheet->getRowDimension($totalRow)
-                    ->setRowHeight(25);
+                    ->setRowHeight(27);
+
+                if ($lastDataRow >= 2) {
+                    for (
+                        $row = 2;
+                        $row <= $lastDataRow;
+                        $row++
+                    ) {
+                        $sheet->getRowDimension($row)
+                            ->setRowHeight(34);
+                    }
+                }
 
                 /*
                 |--------------------------------------------------------------------------
                 | Lebar kolom
                 |--------------------------------------------------------------------------
                 */
-                $sheet->getColumnDimension('A')
-                    ->setWidth(7);
+                $columnWidths = [
+                    'A' => 7,
+                    'B' => 17,
+                    'C' => 15,
+                    'D' => 42,
+                    'E' => 20,
+                    'F' => 21,
+                    'G' => 21,
+                    'H' => 22,
+                    'I' => 20,
+                    'J' => 20,
+                ];
 
-                $sheet->getColumnDimension('B')
-                    ->setWidth(17);
-
-                $sheet->getColumnDimension('C')
-                    ->setWidth(15);
-
-                $sheet->getColumnDimension('D')
-                    ->setWidth(38);
-
-                $sheet->getColumnDimension('E')
-                    ->setWidth(20);
-
-                $sheet->getColumnDimension('F')
-                    ->setWidth(19);
-
-                $sheet->getColumnDimension('G')
-                    ->setWidth(17);
-
-                $sheet->getColumnDimension('H')
-                    ->setWidth(19);
-
-                $sheet->getColumnDimension('I')
-                    ->setWidth(16);
-
-                $sheet->getColumnDimension('J')
-                    ->setWidth(15);
+                foreach (
+                    $columnWidths as $column => $width
+                ) {
+                    $sheet->getColumnDimension($column)
+                        ->setWidth($width);
+                }
 
                 /*
                 |--------------------------------------------------------------------------
-                | Alignment
+                | Alignment umum
                 |--------------------------------------------------------------------------
                 */
+                $sheet->getStyle("A1:J{$totalRow}")
+                    ->getAlignment()
+                    ->setVertical(
+                        Alignment::VERTICAL_CENTER
+                    );
+
                 $sheet->getStyle("A2:A{$totalRow}")
-                    ->getAlignment()
-                    ->setHorizontal(
-                        Alignment::HORIZONTAL_CENTER
-                    );
-
-                $sheet->getStyle("C2:C{$lastDataRow}")
-                    ->getAlignment()
-                    ->setHorizontal(
-                        Alignment::HORIZONTAL_CENTER
-                    );
-
-                $sheet->getStyle("E2:E{$lastDataRow}")
                     ->getAlignment()
                     ->setHorizontal(
                         Alignment::HORIZONTAL_CENTER
@@ -516,28 +528,56 @@ class SalesExport implements
                         Alignment::HORIZONTAL_RIGHT
                     );
 
-                $sheet->getStyle("A1:J{$totalRow}")
+                $sheet->getStyle("J{$totalRow}")
                     ->getAlignment()
-                    ->setVertical(
-                        Alignment::VERTICAL_CENTER
+                    ->setHorizontal(
+                        Alignment::HORIZONTAL_CENTER
                     );
 
                 /*
                 |--------------------------------------------------------------------------
-                | Bungkus teks produk
+                | Style khusus baris data
                 |--------------------------------------------------------------------------
+                |
+                | Pemeriksaan ini mencegah range seperti C2:C1 ketika
+                | laporan tidak mempunyai transaksi.
+                |
                 */
                 if ($lastDataRow >= 2) {
+                    $sheet->getStyle(
+                        "C2:C{$lastDataRow}"
+                    )
+                        ->getAlignment()
+                        ->setHorizontal(
+                            Alignment::HORIZONTAL_CENTER
+                        );
+
+                    $sheet->getStyle(
+                        "E2:E{$lastDataRow}"
+                    )
+                        ->getAlignment()
+                        ->setHorizontal(
+                            Alignment::HORIZONTAL_CENTER
+                        );
+
                     $sheet->getStyle(
                         "D2:D{$lastDataRow}"
                     )
                         ->getAlignment()
                         ->setWrapText(true);
+
+                    $sheet->getStyle(
+                        "J2:J{$lastDataRow}"
+                    )
+                        ->getAlignment()
+                        ->setHorizontal(
+                            Alignment::HORIZONTAL_LEFT
+                        );
                 }
 
                 /*
                 |--------------------------------------------------------------------------
-                | Filter dan freeze heading
+                | Filter dan heading tetap terlihat
                 |--------------------------------------------------------------------------
                 */
                 $sheet->setAutoFilter(
@@ -561,19 +601,19 @@ class SalesExport implements
                     PageSetup::PAPERSIZE_A4
                 );
 
-                // Pas satu halaman secara horizontal
                 $pageSetup->setFitToPage(true);
                 $pageSetup->setFitToWidth(1);
                 $pageSetup->setFitToHeight(0);
 
-                // Ulangi heading jika lebih dari satu halaman
+                /*
+                 * Ulangi heading jika dicetak lebih dari satu halaman.
+                 */
                 $pageSetup
                     ->setRowsToRepeatAtTopByStartAndEnd(
                         1,
                         1
                     );
 
-                // Area yang dicetak
                 $pageSetup->setPrintArea(
                     "A1:J{$totalRow}"
                 );

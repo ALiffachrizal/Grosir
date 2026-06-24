@@ -81,8 +81,8 @@
         .yellow-line {
             width: 100%;
             height: 3px;
-            background: #eab308;
             margin-bottom: 12px;
+            background: #eab308;
         }
 
         /* ======================================================= */
@@ -91,9 +91,9 @@
 
         .information-box {
             width: 100%;
-            background: #f8fafc;
-            border: 1px solid #e5e7eb;
             margin-bottom: 12px;
+            border: 1px solid #e5e7eb;
+            background: #f8fafc;
         }
 
         .information-box td {
@@ -109,10 +109,10 @@
 
         .information-label {
             display: block;
+            margin-bottom: 4px;
             font-size: 7px;
             text-transform: uppercase;
             color: #64748b;
-            margin-bottom: 4px;
         }
 
         .information-value {
@@ -129,9 +129,9 @@
         .summary-wrapper {
             width: 100%;
             margin-bottom: 14px;
+            margin-left: -7px;
             border-collapse: separate;
             border-spacing: 7px 0;
-            margin-left: -7px;
         }
 
         .summary-wrapper > tbody > tr > td {
@@ -149,31 +149,31 @@
         }
 
         .summary-card.blue {
-            background: #eff6ff;
             border-top: 4px solid #2563eb;
+            background: #eff6ff;
         }
 
         .summary-card.orange {
-            background: #fff7ed;
             border-top: 4px solid #f97316;
+            background: #fff7ed;
         }
 
         .summary-card.green {
-            background: #f0fdf4;
             border-top: 4px solid #16a34a;
+            background: #f0fdf4;
         }
 
         .summary-label {
+            margin-bottom: 5px;
             font-size: 7px;
             text-transform: uppercase;
             color: #64748b;
-            margin-bottom: 5px;
         }
 
         .summary-value {
+            margin-bottom: 3px;
             font-size: 16px;
             font-weight: bold;
-            margin-bottom: 3px;
         }
 
         .summary-value.blue {
@@ -191,6 +191,35 @@
         .summary-note {
             font-size: 7px;
             color: #64748b;
+        }
+
+        /* ======================================================= */
+        /* INFORMASI RUMUS                                         */
+        /* ======================================================= */
+
+        .formula-box {
+            width: 100%;
+            margin-bottom: 12px;
+            border: 1px solid #dbeafe;
+            background: #eff6ff;
+        }
+
+        .formula-box td {
+            padding: 7px 10px;
+        }
+
+        .formula-label {
+            font-size: 7px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #1d4ed8;
+        }
+
+        .formula-value {
+            text-align: right;
+            font-size: 8px;
+            font-weight: bold;
+            color: #1e3a8a;
         }
 
         /* ======================================================= */
@@ -221,8 +250,8 @@
 
         .transaction-count {
             text-align: right;
-            color: #64748b;
             font-size: 8px;
+            color: #64748b;
         }
 
         /* ======================================================= */
@@ -236,21 +265,21 @@
         }
 
         .transaction-table th {
+            padding: 7px 5px;
+            border: 1px solid #1e293b;
             background: #1e293b;
             color: #ffffff;
-            padding: 7px 5px;
             font-size: 7px;
             font-weight: bold;
             text-align: left;
-            border: 1px solid #1e293b;
         }
 
         .transaction-table td {
             padding: 6px 5px;
-            font-size: 7.5px;
             border: 1px solid #e5e7eb;
             vertical-align: top;
             background: #ffffff;
+            font-size: 7.5px;
         }
 
         .transaction-table tbody tr:nth-child(even) td {
@@ -258,10 +287,10 @@
         }
 
         .transaction-table tfoot td {
+            padding: 7px 5px;
+            border-top: 2px solid #334155;
             background: #f1f5f9;
             font-weight: bold;
-            border-top: 2px solid #334155;
-            padding: 7px 5px;
         }
 
         .text-center {
@@ -294,20 +323,25 @@
         }
 
         .product-item {
+            margin-bottom: 3px;
             line-height: 1.45;
-            margin-bottom: 2px;
         }
 
         .product-item:last-child {
             margin-bottom: 0;
         }
 
+        .product-description {
+            font-size: 6.5px;
+            color: #94a3b8;
+        }
+
         .badge {
             display: inline-block;
             padding: 2px 6px;
+            border-radius: 7px;
             font-size: 6.5px;
             font-weight: bold;
-            border-radius: 7px;
         }
 
         .badge-cash {
@@ -321,15 +355,36 @@
         }
 
         .badge-refund {
+            margin-top: 2px;
             background: #ffedd5;
             color: #c2410c;
-            margin-top: 2px;
         }
 
         .empty-row {
-            text-align: center;
             padding: 25px !important;
+            text-align: center;
             color: #94a3b8;
+        }
+
+        /* ======================================================= */
+        /* KETERANGAN                                              */
+        /* ======================================================= */
+
+        .report-note {
+            width: 100%;
+            margin-top: 10px;
+            border: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
+
+        .report-note td {
+            padding: 7px 10px;
+            font-size: 7px;
+            color: #64748b;
+        }
+
+        .report-note strong {
+            color: #334155;
         }
 
         /* ======================================================= */
@@ -406,7 +461,8 @@
                 </span>
 
                 <span class="information-value">
-                    {{ now()->locale('id')->isoFormat('D MMMM Y, HH:mm') }} WIB
+                    {{ now()->locale('id')->isoFormat('D MMMM Y, HH:mm') }}
+                    WIB
                 </span>
             </td>
 
@@ -438,32 +494,42 @@
                             </div>
 
                             <div class="summary-value blue">
-                                Rp {{ number_format($totalSales, 0, ',', '.') }}
+                                Rp {{ number_format(
+                                    $totalSales,
+                                    0,
+                                    ',',
+                                    '.'
+                                ) }}
                             </div>
 
                             <div class="summary-note">
-                                {{ $sales->count() }} transaksi
+                                {{ $sales->count() }} transaksi penjualan
                             </div>
                         </td>
                     </tr>
                 </table>
             </td>
 
-            {{-- Total Refund --}}
+            {{-- Nominal Refund --}}
             <td>
                 <table class="summary-card orange">
                     <tr>
                         <td>
                             <div class="summary-label">
-                                Total Refund
+                                Nominal Refund
                             </div>
 
                             <div class="summary-value orange">
-                                Rp {{ number_format($totalRefundNominal, 0, ',', '.') }}
+                                Rp {{ number_format(
+                                    $totalRefundNominal,
+                                    0,
+                                    ',',
+                                    '.'
+                                ) }}
                             </div>
 
                             <div class="summary-note">
-                                {{ $totalRefunds }} transaksi,
+                                {{ $totalRefunds }} transaksi refund,
                                 {{ $totalRefundQty }} unit
                             </div>
                         </td>
@@ -481,17 +547,43 @@
                             </div>
 
                             <div class="summary-value green">
-                                Rp {{ number_format($netRevenue, 0, ',', '.') }}
+                                Rp {{ number_format(
+                                    $netRevenue,
+                                    0,
+                                    ',',
+                                    '.'
+                                ) }}
                             </div>
 
                             <div class="summary-note">
-                                Setelah dikurangi refund
+                                Setelah dikurangi nominal refund
                             </div>
                         </td>
                     </tr>
                 </table>
             </td>
+        </tr>
+    </table>
 
+    {{-- ========================================================= --}}
+    {{-- RUMUS PENJUALAN BERSIH --}}
+    {{-- ========================================================= --}}
+    <table class="formula-box">
+        <tr>
+            <td style="width: 35%;">
+                <span class="formula-label">
+                    Rumus Penjualan Bersih
+                </span>
+            </td>
+
+            <td class="formula-value" style="width: 65%;">
+                Penjualan Kotor − Nominal Refund =
+                Rp {{ number_format($totalSales, 0, ',', '.') }}
+                −
+                Rp {{ number_format($totalRefundNominal, 0, ',', '.') }}
+                =
+                Rp {{ number_format($netRevenue, 0, ',', '.') }}
+            </td>
         </tr>
     </table>
 
@@ -562,25 +654,21 @@
         </thead>
 
         <tbody>
-
             @forelse($sales as $index => $sale)
 
                 @php
-                    $saleRefundNominal = 0;
-
-                    foreach ($sale->refunds as $refund) {
-                        $saleDetail = $sale->details
-                            ->where('kode_produk', $refund->kode_produk)
-                            ->first();
-
-                        if ($saleDetail) {
-                            $saleRefundNominal +=
-                                $refund->quantity * $saleDetail->unit_price;
-                        }
-                    }
-
-                    $saleNetRevenue =
-                        $sale->total_price - $saleRefundNominal;
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Nilai transaksi
+                    |--------------------------------------------------------------------------
+                    |
+                    | Seluruh nilai sudah dihitung oleh ReportController.
+                    | PDF tidak menghitung refund ulang.
+                    |
+                    */
+                    $saleRefundNominal = (float) $sale->refund_nominal;
+                    $saleRefundQuantity = (int) $sale->refund_quantity;
+                    $saleNetRevenue = (float) $sale->net_revenue;
                 @endphp
 
                 <tr>
@@ -590,23 +678,29 @@
                         {{ $index + 1 }}
                     </td>
 
-                    {{-- Transaksi --}}
+                    {{-- Nomor transaksi --}}
                     <td>
                         <span class="transaction-code">
-                            #{{ str_pad($sale->id, 6, '0', STR_PAD_LEFT) }}
+                            #{{ str_pad(
+                                (string) $sale->id,
+                                6,
+                                '0',
+                                STR_PAD_LEFT
+                            ) }}
                         </span>
                     </td>
 
                     {{-- Tanggal --}}
                     <td>
                         <span class="font-bold">
-                            {{ \Carbon\Carbon::parse($sale->date)->format('d/m/Y') }}
+                            {{ $sale->date->format('d/m/Y') }}
                         </span>
 
                         <br>
 
                         <span class="text-gray">
-                            {{ $sale->created_at->format('H:i') }} WIB
+                            {{ $sale->created_at->format('H:i') }}
+                            WIB
                         </span>
                     </td>
 
@@ -614,45 +708,67 @@
                     <td>
                         @foreach($sale->details as $detail)
                             <div class="product-item">
-                                {{ $detail->product->name ?? $detail->kode_produk }}
+                                <span class="font-bold">
+                                    {{ $detail->product->name
+                                        ?? $detail->kode_produk }}
+                                </span>
 
                                 <span class="text-gray">
                                     ({{ $detail->quantity }}
-                                    {{ $detail->product->base_unit ?? 'unit' }})
+                                    {{ $detail->product->base_unit
+                                        ?? 'unit' }})
                                 </span>
+
+                                @if(!empty($detail->description))
+                                    <br>
+
+                                    <span class="product-description">
+                                        {{ $detail->description }}
+                                    </span>
+                                @endif
                             </div>
                         @endforeach
                     </td>
 
-                    {{-- Metode --}}
+                    {{-- Metode pembayaran --}}
                     <td class="text-center">
                         @if($sale->payment_method === 'cash')
                             <span class="badge badge-cash">
-                                Tunai
+                                {{ $sale->payment_method_label }}
                             </span>
                         @else
                             <span class="badge badge-transfer">
-                                Transfer
+                                {{ $sale->payment_method_label }}
                             </span>
                         @endif
                     </td>
 
-                    {{-- Kotor --}}
+                    {{-- Penjualan kotor --}}
                     <td class="text-right font-bold">
-                        Rp {{ number_format($sale->total_price, 0, ',', '.') }}
+                        Rp {{ number_format(
+                            $sale->total_price,
+                            0,
+                            ',',
+                            '.'
+                        ) }}
                     </td>
 
                     {{-- Refund --}}
                     <td class="text-right">
                         @if($saleRefundNominal > 0)
                             <span class="text-orange font-bold">
-                                Rp {{ number_format($saleRefundNominal, 0, ',', '.') }}
+                                Rp {{ number_format(
+                                    $saleRefundNominal,
+                                    0,
+                                    ',',
+                                    '.'
+                                ) }}
                             </span>
 
                             <br>
 
                             <span class="badge badge-refund">
-                                {{ $sale->refunds->sum('quantity') }} unit
+                                {{ $saleRefundQuantity }} unit
                             </span>
                         @else
                             <span class="text-gray">
@@ -661,31 +777,32 @@
                         @endif
                     </td>
 
-                    {{-- Bersih --}}
+                    {{-- Penjualan bersih --}}
                     <td class="text-right font-bold text-green">
-                        Rp {{ number_format($saleNetRevenue, 0, ',', '.') }}
+                        Rp {{ number_format(
+                            $saleNetRevenue,
+                            0,
+                            ',',
+                            '.'
+                        ) }}
                     </td>
 
                     {{-- Kasir --}}
                     <td>
                         {{ $sale->user->username ?? '-' }}
                     </td>
-
                 </tr>
 
             @empty
-
                 <tr>
                     <td colspan="9" class="empty-row">
                         Tidak ada transaksi pada periode yang dipilih.
                     </td>
                 </tr>
-
             @endforelse
-
         </tbody>
 
-        @if($sales->count() > 0)
+        @if($sales->isNotEmpty())
             <tfoot>
                 <tr>
                     <td colspan="5" class="text-right">
@@ -693,15 +810,36 @@
                     </td>
 
                     <td class="text-right">
-                        Rp {{ number_format($totalSales, 0, ',', '.') }}
+                        Rp {{ number_format(
+                            $totalSales,
+                            0,
+                            ',',
+                            '.'
+                        ) }}
                     </td>
 
                     <td class="text-right text-orange">
-                        Rp {{ number_format($totalRefundNominal, 0, ',', '.') }}
+                        Rp {{ number_format(
+                            $totalRefundNominal,
+                            0,
+                            ',',
+                            '.'
+                        ) }}
+
+                        <br>
+
+                        <span style="font-size: 6.5px;">
+                            {{ $totalRefundQty }} unit
+                        </span>
                     </td>
 
                     <td class="text-right text-green">
-                        Rp {{ number_format($netRevenue, 0, ',', '.') }}
+                        Rp {{ number_format(
+                            $netRevenue,
+                            0,
+                            ',',
+                            '.'
+                        ) }}
                     </td>
 
                     <td></td>
@@ -709,6 +847,28 @@
             </tfoot>
         @endif
 
+    </table>
+
+    {{-- ========================================================= --}}
+    {{-- KETERANGAN --}}
+    {{-- ========================================================= --}}
+    <table class="report-note">
+        <tr>
+            <td>
+                <strong>{{ $totalRefunds }}</strong>
+                transaksi penjualan mengalami refund dengan total
+                <strong>{{ $totalRefundQty }} unit</strong>
+                dan nominal
+                <strong>
+                    Rp {{ number_format(
+                        $totalRefundNominal,
+                        0,
+                        ',',
+                        '.'
+                    ) }}
+                </strong>.
+            </td>
+        </tr>
     </table>
 
     {{-- ========================================================= --}}
