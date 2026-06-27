@@ -11,46 +11,34 @@ use App\Models\StockLog;
 class ProductController extends Controller
 {
     public function index(Request $request)
-{
-    $query = Product::with('category');
+    {
+        $query = Product::with('category');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Filter kategori
-    |--------------------------------------------------------------------------
-    | Filter menggunakan category_id karena Product sekarang memiliki relasi
-    | belongsTo ke Category melalui kolom category_id.
-    */
-    if ($request->filled('category_id')) {
-        $query->where('category_id', $request->category_id);
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->stock_status === 'menipis') {
+            $query->whereColumn('stock', '<=', 'minimum_stock');
+        }
+
+        if ($request->stock_status === 'aman') {
+            $query->whereColumn('stock', '>', 'minimum_stock');
+        }
+
+        $products = $query
+            ->orderBy('name')
+            ->get();
+
+        $productCategories = Category::product()
+            ->orderBy('name')
+            ->get();
+
+        return view('products.index', compact(
+            'products',
+            'productCategories'
+        ));
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Filter status stok
-    |--------------------------------------------------------------------------
-    */
-    if ($request->stock_status === 'menipis') {
-        $query->whereColumn('stock', '<=', 'minimum_stock');
-    }
-
-    if ($request->stock_status === 'aman') {
-        $query->whereColumn('stock', '>', 'minimum_stock');
-    }
-
-    $products = $query
-        ->orderBy('name')
-        ->get();
-
-    $productCategories = Category::product()
-        ->orderBy('name')
-        ->get();
-
-    return view('products.index', compact(
-        'products',
-        'productCategories'
-    ));
-}
 
     public function create()
     {
@@ -63,12 +51,6 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'kode_produk' => [
-                'required',
-                'string',
-                'max:10',
-                'unique:products,kode_produk',
-            ],
             'name' => [
                 'required',
                 'string',
@@ -115,68 +97,64 @@ class ProductController extends Controller
                 'min:0',
             ],
         ], [
-            'kode_produk.required' => 'Kode produk wajib diisi.',
-            'kode_produk.unique' => 'Kode produk sudah digunakan.',
-            'kode_produk.max' => 'Kode produk maksimal 10 karakter.',
-
             'name.required' => 'Nama produk wajib diisi.',
 
             'category_id.required' => 'Kategori wajib dipilih.',
-            'category_id.exists' => 'Kategori tidak valid.',
+            'category_id.exists'   => 'Kategori tidak valid.',
 
             'base_unit.required' => 'Satuan dasar wajib dipilih.',
-            'base_unit.in' => 'Satuan dasar tidak valid.',
+            'base_unit.in'       => 'Satuan dasar tidak valid.',
 
             'items_per_package.required' => 'Jumlah per package wajib diisi.',
-            'items_per_package.integer' => 'Jumlah per package harus berupa angka.',
-            'items_per_package.min' => 'Jumlah per package minimal 1.',
+            'items_per_package.integer'  => 'Jumlah per package harus berupa angka.',
+            'items_per_package.min'      => 'Jumlah per package minimal 1.',
 
             'items_per_bundle.integer' => 'Jumlah per bundle harus berupa angka.',
-            'items_per_bundle.min' => 'Jumlah per bundle minimal 1.',
+            'items_per_bundle.min'     => 'Jumlah per bundle minimal 1.',
 
             'stock.integer' => 'Stok harus berupa angka.',
-            'stock.min' => 'Stok tidak boleh kurang dari 0.',
+            'stock.min'     => 'Stok tidak boleh kurang dari 0.',
 
             'minimum_stock.required' => 'Stok minimum wajib diisi.',
-            'minimum_stock.integer' => 'Stok minimum harus berupa angka.',
-            'minimum_stock.min' => 'Stok minimum tidak boleh kurang dari 0.',
+            'minimum_stock.integer'  => 'Stok minimum harus berupa angka.',
+            'minimum_stock.min'      => 'Stok minimum tidak boleh kurang dari 0.',
 
             'purchase_price.required' => 'Harga beli wajib diisi.',
-            'purchase_price.numeric' => 'Harga beli harus berupa angka.',
-            'purchase_price.min' => 'Harga beli tidak boleh kurang dari 0.',
+            'purchase_price.numeric'  => 'Harga beli harus berupa angka.',
+            'purchase_price.min'      => 'Harga beli tidak boleh kurang dari 0.',
 
             'selling_price.required' => 'Harga jual wajib diisi.',
-            'selling_price.numeric' => 'Harga jual harus berupa angka.',
-            'selling_price.min' => 'Harga jual tidak boleh kurang dari 0.',
+            'selling_price.numeric'  => 'Harga jual harus berupa angka.',
+            'selling_price.min'      => 'Harga jual tidak boleh kurang dari 0.',
         ]);
 
+        // kode_produk tidak perlu diisi — otomatis di-generate oleh model
         $product = Product::create([
-            'kode_produk' => strtoupper($request->kode_produk),
-            'name' => $request->name,
-            'category_id' => $request->category_id,
-            'base_unit' => $request->base_unit,
+            'name'              => $request->name,
+            'category_id'       => $request->category_id,
+            'base_unit'         => $request->base_unit,
             'items_per_package' => $request->items_per_package,
-            'items_per_bundle' => $request->items_per_bundle ?? 1,
-            'stock' => $request->stock ?? 0,
-            'minimum_stock' => $request->minimum_stock,
-            'purchase_price' => $request->purchase_price,
-            'selling_price' => $request->selling_price,
+            'items_per_bundle'  => $request->items_per_bundle ?? 1,
+            'stock'             => $request->stock ?? 0,
+            'minimum_stock'     => $request->minimum_stock,
+            'purchase_price'    => $request->purchase_price,
+            'selling_price'     => $request->selling_price,
         ]);
 
         if ($product->stock > 0) {
             StockLog::create([
-                'kode_produk' => $product->kode_produk,
-                'user_id' => auth()->id(),
-                'type' => 'in',
-                'quantity' => $product->stock,
+                'kode_produk'    => $product->kode_produk,
+                'user_id'        => auth()->id(),
+                'type'           => 'in',
+                'quantity'       => $product->stock,
                 'reference_type' => 'initial_stock',
-                'reference_id' => $product->id,
-                'note' => 'Stok awal produk',
+                'reference_id'   => $product->id,
+                'note'           => 'Stok awal produk',
             ]);
         }
 
         return redirect()->route('products.index')
-            ->with('success', 'Produk "' . $request->name . '" berhasil ditambahkan.');
+            ->with('success', 'Produk "' . $request->name . '" berhasil ditambahkan dengan kode ' . $product->kode_produk . '.');
     }
 
     public function show(Product $product)
@@ -246,40 +224,40 @@ class ProductController extends Controller
             'name.required' => 'Nama produk wajib diisi.',
 
             'category_id.required' => 'Kategori wajib dipilih.',
-            'category_id.exists' => 'Kategori tidak valid.',
+            'category_id.exists'   => 'Kategori tidak valid.',
 
             'base_unit.required' => 'Satuan dasar wajib dipilih.',
-            'base_unit.in' => 'Satuan dasar tidak valid.',
+            'base_unit.in'       => 'Satuan dasar tidak valid.',
 
             'items_per_package.required' => 'Jumlah per package wajib diisi.',
-            'items_per_package.integer' => 'Jumlah per package harus berupa angka.',
-            'items_per_package.min' => 'Jumlah per package minimal 1.',
+            'items_per_package.integer'  => 'Jumlah per package harus berupa angka.',
+            'items_per_package.min'      => 'Jumlah per package minimal 1.',
 
             'items_per_bundle.integer' => 'Jumlah per bundle harus berupa angka.',
-            'items_per_bundle.min' => 'Jumlah per bundle minimal 1.',
+            'items_per_bundle.min'     => 'Jumlah per bundle minimal 1.',
 
             'minimum_stock.required' => 'Stok minimum wajib diisi.',
-            'minimum_stock.integer' => 'Stok minimum harus berupa angka.',
-            'minimum_stock.min' => 'Stok minimum tidak boleh kurang dari 0.',
+            'minimum_stock.integer'  => 'Stok minimum harus berupa angka.',
+            'minimum_stock.min'      => 'Stok minimum tidak boleh kurang dari 0.',
 
             'purchase_price.required' => 'Harga beli wajib diisi.',
-            'purchase_price.numeric' => 'Harga beli harus berupa angka.',
-            'purchase_price.min' => 'Harga beli tidak boleh kurang dari 0.',
+            'purchase_price.numeric'  => 'Harga beli harus berupa angka.',
+            'purchase_price.min'      => 'Harga beli tidak boleh kurang dari 0.',
 
             'selling_price.required' => 'Harga jual wajib diisi.',
-            'selling_price.numeric' => 'Harga jual harus berupa angka.',
-            'selling_price.min' => 'Harga jual tidak boleh kurang dari 0.',
+            'selling_price.numeric'  => 'Harga jual harus berupa angka.',
+            'selling_price.min'      => 'Harga jual tidak boleh kurang dari 0.',
         ]);
 
         $product->update([
-            'name' => $request->name,
-            'category_id' => $request->category_id,
-            'base_unit' => $request->base_unit,
+            'name'              => $request->name,
+            'category_id'       => $request->category_id,
+            'base_unit'         => $request->base_unit,
             'items_per_package' => $request->items_per_package,
-            'items_per_bundle' => $request->items_per_bundle ?? 1,
-            'minimum_stock' => $request->minimum_stock,
-            'purchase_price' => $request->purchase_price,
-            'selling_price' => $request->selling_price,
+            'items_per_bundle'  => $request->items_per_bundle ?? 1,
+            'minimum_stock'     => $request->minimum_stock,
+            'purchase_price'    => $request->purchase_price,
+            'selling_price'     => $request->selling_price,
         ]);
 
         return redirect()->route('products.index')

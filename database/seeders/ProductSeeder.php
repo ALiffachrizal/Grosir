@@ -21,7 +21,6 @@ class ProductSeeder extends Seeder
             |--------------------------------------------------------------------------
             */
             [
-                'kode_produk'       => 'PRD001',
                 'name'              => 'Mie Instan Kuah',
                 'category_code'     => 'KAT001',
                 'base_unit'         => 'PCS',
@@ -33,7 +32,6 @@ class ProductSeeder extends Seeder
                 'selling_price'     => 3500,
             ],
             [
-                'kode_produk'       => 'PRD002',
                 'name'              => 'Beras Premium',
                 'category_code'     => 'KAT001',
                 'base_unit'         => 'KG',
@@ -45,7 +43,6 @@ class ProductSeeder extends Seeder
                 'selling_price'     => 16000,
             ],
             [
-                'kode_produk'       => 'PRD003',
                 'name'              => 'Gula Pasir',
                 'category_code'     => 'KAT001',
                 'base_unit'         => 'KG',
@@ -57,7 +54,6 @@ class ProductSeeder extends Seeder
                 'selling_price'     => 17000,
             ],
             [
-                'kode_produk'       => 'PRD004',
                 'name'              => 'Minyak Goreng 1 Liter',
                 'category_code'     => 'KAT001',
                 'base_unit'         => 'LITER',
@@ -75,7 +71,6 @@ class ProductSeeder extends Seeder
             |--------------------------------------------------------------------------
             */
             [
-                'kode_produk'       => 'PRD005',
                 'name'              => 'Biskuit Cokelat',
                 'category_code'     => 'KAT002',
                 'base_unit'         => 'PCS',
@@ -87,7 +82,6 @@ class ProductSeeder extends Seeder
                 'selling_price'     => 6000,
             ],
             [
-                'kode_produk'       => 'PRD006',
                 'name'              => 'Keripik Singkong',
                 'category_code'     => 'KAT002',
                 'base_unit'         => 'PCS',
@@ -99,7 +93,6 @@ class ProductSeeder extends Seeder
                 'selling_price'     => 7000,
             ],
             [
-                'kode_produk'       => 'PRD007',
                 'name'              => 'Wafer Cokelat',
                 'category_code'     => 'KAT002',
                 'base_unit'         => 'PCS',
@@ -117,7 +110,6 @@ class ProductSeeder extends Seeder
             |--------------------------------------------------------------------------
             */
             [
-                'kode_produk'       => 'PRD008',
                 'name'              => 'Deterjen Sachet',
                 'category_code'     => 'KAT003',
                 'base_unit'         => 'PCS',
@@ -129,7 +121,6 @@ class ProductSeeder extends Seeder
                 'selling_price'     => 3000,
             ],
             [
-                'kode_produk'       => 'PRD009',
                 'name'              => 'Sabun Cuci Piring',
                 'category_code'     => 'KAT003',
                 'base_unit'         => 'BOTOL',
@@ -141,7 +132,6 @@ class ProductSeeder extends Seeder
                 'selling_price'     => 11000,
             ],
             [
-                'kode_produk'       => 'PRD010',
                 'name'              => 'Tisu Gulung',
                 'category_code'     => 'KAT003',
                 'base_unit'         => 'PCS',
@@ -159,7 +149,6 @@ class ProductSeeder extends Seeder
             |--------------------------------------------------------------------------
             */
             [
-                'kode_produk'       => 'PRD011',
                 'name'              => 'Air Mineral 600 ml',
                 'category_code'     => 'KAT004',
                 'base_unit'         => 'BOTOL',
@@ -171,7 +160,6 @@ class ProductSeeder extends Seeder
                 'selling_price'     => 3500,
             ],
             [
-                'kode_produk'       => 'PRD012',
                 'name'              => 'Teh Botol 450 ml',
                 'category_code'     => 'KAT004',
                 'base_unit'         => 'BOTOL',
@@ -183,7 +171,6 @@ class ProductSeeder extends Seeder
                 'selling_price'     => 5000,
             ],
             [
-                'kode_produk'       => 'PRD013',
                 'name'              => 'Kopi Sachet',
                 'category_code'     => 'KAT004',
                 'base_unit'         => 'PCS',
@@ -202,12 +189,13 @@ class ProductSeeder extends Seeder
                 $productData['category_code']
             )->firstOrFail();
 
+            // kode_produk tidak perlu diisi di sini — otomatis di-generate
+            // oleh event creating di model Product saat produk baru dibuat
             $product = Product::updateOrCreate(
                 [
-                    'kode_produk' => $productData['kode_produk'],
+                    'name' => $productData['name'],
                 ],
                 [
-                    'name'              => $productData['name'],
                     'category_id'       => $category->id,
                     'base_unit'         => $productData['base_unit'],
                     'items_per_package' => $productData['items_per_package'],

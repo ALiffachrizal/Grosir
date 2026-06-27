@@ -38,6 +38,25 @@ class Product extends Model
 
     const BASE_UNITS_DEFAULT = ['PCS', 'BOTOL', 'LITER', 'KG'];
 
+    // ==================== AUTO-GENERATE KODE ====================
+
+    protected static function booted(): void
+    {
+        static::creating(function (Product $product) {
+            if (!$product->kode_produk) {
+                $last = static::whereNotNull('kode_produk')
+                    ->where('kode_produk', 'like', 'PRD-%')
+                    ->max('kode_produk');
+
+                $number = $last ? ((int) substr($last, 4)) + 1 : 1;
+
+                $product->kode_produk = 'PRD-' . str_pad($number, 4, '0', STR_PAD_LEFT);
+            }
+        });
+    }
+
+    // ==================== HELPER ====================
+
     public static function getBaseUnits(): array
     {
         $fromDb = Category::where('type', 'unit')
@@ -47,6 +66,8 @@ class Product extends Model
 
         return array_unique(array_merge(self::BASE_UNITS_DEFAULT, $fromDb));
     }
+
+    // ==================== RELASI ====================
 
     public function category(): BelongsTo
     {
@@ -72,6 +93,8 @@ class Product extends Model
     {
         return $this->hasMany(StockLog::class, 'kode_produk', 'kode_produk');
     }
+
+    // ==================== ACCESSOR ====================
 
     public function getCategoryNameAttribute(): string
     {

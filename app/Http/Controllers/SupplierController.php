@@ -157,15 +157,17 @@ class SupplierController extends Controller
     {
         $supplier->load([
             'category',
-
             'purchaseOrders' => function ($query) {
-                $query->latest()
-                    ->take(10);
+                $query->latest()->take(10);
             },
         ]);
 
+        $existingCodes = Supplier::orderBy('kode_supplier')
+            ->pluck('kode_supplier', 'id');
+
         return view('suppliers.show', compact(
-            'supplier'
+            'supplier',
+            'existingCodes'
         ));
     }
 

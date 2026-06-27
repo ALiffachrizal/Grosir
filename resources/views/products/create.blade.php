@@ -11,6 +11,14 @@
         <form action="{{ route('products.store') }}" method="POST" class="space-y-5">
             @csrf
 
+            {{-- Info kode otomatis --}}
+            <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-700">
+                <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                Kode produk akan dibuat otomatis oleh sistem (format: PRD-0001, PRD-0002, dst.)
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
                 {{-- Nama Produk --}}
@@ -23,24 +31,6 @@
                                   {{ $errors->has('name') ? 'border-red-400' : 'border-gray-300' }}"
                            placeholder="Masukkan nama produk" autofocus>
                     @error('name')
-                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Kode Produk --}}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                        Kode Produk <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="kode_produk"
-                        value="{{ old('kode_produk') }}"
-                        maxlength="10"
-                        class="w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none
-                                focus:ring-2 focus:ring-blue-500 uppercase
-                                {{ $errors->has('kode_produk') ? 'border-red-400' : 'border-gray-300' }}"
-                        placeholder="Contoh: PRD001">
-                    <p class="text-xs text-gray-400 mt-1">Maksimal 10 karakter, otomatis huruf besar</p>
-                    @error('kode_produk')
                     <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
                 </div>

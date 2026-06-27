@@ -22,10 +22,10 @@
                     class="w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none
                             focus:ring-2 focus:ring-blue-500 uppercase
                             {{ $errors->has('kode_supplier') ? 'border-red-400' : 'border-gray-300' }}"
-                    placeholder="Contoh: SUP001" autofocus>
-                <p class="text-xs text-gray-400 mt-1">Maksimal 10 karakter</p>
+                    placeholder="Contoh: MIE001" autofocus>
+                <p class="text-xs text-gray-400 mt-1">Maksimal 10 karakter, otomatis huruf besar</p>
                 @error('kode_supplier')
-                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -37,7 +37,7 @@
                 <input type="text" name="name" value="{{ old('name') }}"
                        class="w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
                               {{ $errors->has('name') ? 'border-red-400' : 'border-gray-300' }}"
-                       placeholder="Masukkan nama supplier" autofocus>
+                       placeholder="Masukkan nama supplier">
                 @error('name')
                 <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                 @enderror
