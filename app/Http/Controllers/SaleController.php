@@ -16,6 +16,21 @@ use Throwable;
 class SaleController extends Controller
 {
     /**
+     * Jumlah produk yang dimuat saat halaman POS pertama kali dibuka.
+     *
+     * Sebelumnya SEMUA produk (stock > 0) di-dump ke JavaScript sekaligus
+     * lewat @js($products). Untuk katalog besar ini berat di initial load.
+     * Sekarang hanya sebagian yang dimuat di awal; sisanya dicari lewat
+     * endpoint AJAX searchProducts() di bawah, sesuai ketikan kasir.
+     */
+    private const INITIAL_PRODUCTS_LIMIT = 40;
+
+    /**
+     * Jumlah maksimal hasil yang dikembalikan per request pencarian AJAX.
+     */
+    private const SEARCH_RESULTS_LIMIT = 30;
+
+    /**
      * Mengarahkan halaman daftar penjualan ke halaman POS.
      */
     public function index()
@@ -25,12 +40,16 @@ class SaleController extends Controller
 
     /**
      * Menampilkan halaman Point of Sale.
+     *
+     * Hanya memuat sebagian produk di awal (lihat INITIAL_PRODUCTS_LIMIT).
+     * Pencarian produk lain dilakukan lewat endpoint AJAX searchProducts().
      */
     public function create()
     {
         $products = Product::with('category')
             ->where('stock', '>', 0)
             ->orderBy('name')
+            ->take(self::INITIAL_PRODUCTS_LIMIT)
             ->get();
 
         $categories = Category::product()
@@ -41,6 +60,44 @@ class SaleController extends Controller
             'products',
             'categories'
         ));
+    }
+
+    /**
+     * Endpoint AJAX pencarian produk untuk halaman POS.
+     *
+     * Dipanggil dari JavaScript (Alpine.js) setiap kali kasir mengetik di
+     * kolom pencarian atau memilih kategori, dengan debounce di sisi client
+     * agar tidak membanjiri server dengan request di setiap ketikan.
+     *
+     * Query params:
+     *   - q: kata kunci nama produk (opsional)
+     *   - category: nama kategori (opsional)
+     */
+    public function searchProducts(Request $request)
+    {
+        $validated = $request->validate([
+            'q'        => ['nullable', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $products = Product::with('category')
+            ->where('stock', '>', 0)
+            ->when(
+                $validated['q'] ?? null,
+                fn ($query, $search) => $query->where('name', 'like', "%{$search}%")
+            )
+            ->when(
+                $validated['category'] ?? null,
+                fn ($query, $categoryName) => $query->whereHas(
+                    'category',
+                    fn ($q) => $q->where('name', $categoryName)
+                )
+            )
+            ->orderBy('name')
+            ->take(self::SEARCH_RESULTS_LIMIT)
+            ->get();
+
+        return response()->json($products);
     }
 
     /**

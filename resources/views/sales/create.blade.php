@@ -15,11 +15,21 @@
         <div class="flex-1 bg-white rounded-2xl shadow-sm flex flex-col overflow-hidden">
 
             {{-- Search --}}
-            <div class="p-4">
+            <div class="p-4 relative">
                 <input type="text" x-model="search"
                        placeholder="Cari produk..."
                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm
                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+
+                {{-- Indikator kecil saat pencarian sedang diproses di server --}}
+                <div x-show="isSearching"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     class="absolute right-7 top-1/2 -translate-y-1/2"
+                     style="display:none">
+                    <div class="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                </div>
             </div>
 
             {{-- Tabs Kategori --}}
@@ -392,19 +402,93 @@ function pos(products, categories) {
         selectedUnit: 'base',
         modalQty: 1,
 
-        get filteredProducts() {
-            return this.products.filter(p => {
-                const productCategory = this.getCategoryName(p);
+        /*
+        |----------------------------------------------------------------------
+        | AJAX SEARCH
+        |----------------------------------------------------------------------
+        | Sebelumnya SEMUA produk (stock > 0) di-dump langsung ke JS lewat
+        | @js($products) dan difilter di browser. Untuk katalog besar ini
+        | berat di initial load.
+        |
+        | Sekarang server hanya mengirim sebagian produk di awal. Setiap kali
+        | kasir mengetik di kolom pencarian atau memilih kategori, browser
+        | meminta hasil terbaru ke server lewat endpoint AJAX, dengan
+        | debounce 300ms agar tidak mengirim request di setiap ketikan.
+        */
+        isSearching: false,
+        _debounceTimer: null,
 
-                const matchSearch = p.name
-                    .toLowerCase()
-                    .includes(this.search.toLowerCase());
+        /*
+        | knownProducts menyimpan SEMUA produk yang pernah ditampilkan di
+        | sesi ini (bukan hanya hasil pencarian terakhir). Ini penting
+        | karena `products` akan DIGANTI setiap kali ada hasil pencarian
+        | baru — jika kasir sudah memasukkan produk X ke keranjang lalu
+        | mengetik pencarian lain, produk X mungkin tidak lagi ada di
+        | `products`, tapi validasi stok di increaseQty() tetap butuh
+        | data produk X. knownProducts menjaga referensi ini tetap ada.
+        */
+        knownProducts: {},
 
-                const matchCat = this.selectedCategory === ''
-                    || productCategory === this.selectedCategory;
+        init() {
+            // Isi cache awal dari produk yang dikirim server saat load pertama
+            this.cacheProducts(this.products);
 
-                return matchSearch && matchCat;
+            // Setiap kali search atau kategori berubah, minta data ke server
+            this.$watch('search', () => this.debouncedFetch());
+            this.$watch('selectedCategory', () => this.debouncedFetch());
+        },
+
+        cacheProducts(list) {
+            list.forEach(p => {
+                this.knownProducts[p.kode_produk] = p;
             });
+        },
+
+        debouncedFetch() {
+            clearTimeout(this._debounceTimer);
+            this._debounceTimer = setTimeout(() => {
+                this.fetchProducts();
+            }, 300);
+        },
+
+        async fetchProducts() {
+            this.isSearching = true;
+
+            const params = new URLSearchParams();
+            if (this.search) params.set('q', this.search);
+            if (this.selectedCategory) params.set('category', this.selectedCategory);
+
+            try {
+                const response = await fetch(
+                    `{{ route('sales.products.search') }}?${params.toString()}`,
+                    { headers: { 'Accept': 'application/json' } }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Gagal memuat produk');
+                }
+
+                const results = await response.json();
+
+                this.products = results;
+                this.cacheProducts(results);
+            } catch (error) {
+                console.error(error);
+                // Biarkan daftar produk sebelumnya tetap tampil jika request gagal,
+                // supaya kasir tidak kehilangan tampilan saat koneksi bermasalah.
+            } finally {
+                this.isSearching = false;
+            }
+        },
+
+        /*
+        | filteredProducts TIDAK memfilter apa pun lagi di sisi browser —
+        | server sudah mengembalikan hasil yang sesuai search & kategori.
+        | Getter ini dipertahankan agar bagian <template x-for> di HTML
+        | tidak perlu diubah.
+        */
+        get filteredProducts() {
+            return this.products;
         },
 
         get totalPrice() {
@@ -550,9 +634,17 @@ function pos(products, categories) {
         },
 
         increaseQty(index) {
-            const product = this.products.find(
-                p => p.kode_produk === this.cart[index].kode_produk
-            );
+            /*
+            | Pakai knownProducts, bukan this.products — produk yang sudah
+            | ada di keranjang bisa jadi tidak lagi tampil di hasil
+            | pencarian terbaru, tapi datanya tetap tersimpan di cache ini.
+            */
+            const product = this.knownProducts[this.cart[index].kode_produk];
+
+            if (!product) {
+                alert('Data produk tidak ditemukan. Coba muat ulang halaman.');
+                return;
+            }
 
             const totalInCart = this.cart
                 .filter(i => i.kode_produk === this.cart[index].kode_produk)

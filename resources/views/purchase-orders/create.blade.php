@@ -867,6 +867,21 @@ function purchaseOrder(suppliers, products) {
         |--------------------------------------------------------------------------
         | Filter produk berdasarkan kategori supplier
         |--------------------------------------------------------------------------
+        |
+        | PENTING: produk dicocokkan ke supplier lewat category_id (relasi
+        | database yang sebenarnya), BUKAN lewat nama kategori sebagai teks.
+        |
+        | Sebelumnya sistem membandingkan nama kategori produk dengan nama
+        | kategori supplier sebagai string. Ini rawan bug: dua kategori
+        | dengan nama yang mirip tapi tidak identik (typo, beda huruf
+        | besar/kecil, atau spasi ekstra) tidak akan pernah "nyambung"
+        | walau maksud admin sebenarnya sama.
+        |
+        | Sejak kategori produk & supplier digabung jadi satu tabel yang
+        | sama (lihat migration merge_supplier_categories_into_product),
+        | produk dan supplier yang satu kategori akan selalu punya
+        | category_id yang SAMA PERSIS — jadi tidak mungkin salah connect
+        | lagi, walau nama kategorinya diketik beda.
         */
         filterProducts() {
             if (!this.selectedSupplierId) {
@@ -890,16 +905,16 @@ function purchaseOrder(suppliers, products) {
                 return;
             }
 
+            // Nama kategori tetap disimpan, tapi HANYA untuk ditampilkan
+            // di UI (misalnya teks "Menampilkan produk kategori X").
+            // Pencocokan produknya sendiri tidak lagi memakai nama ini.
             this.selectedCategory =
                 this.getCategoryName(supplier);
 
             this.filteredProducts =
                 this.products.filter(product => {
-                    const productCategory =
-                        this.getCategoryName(product);
-
-                    return this.normalize(productCategory) ===
-                        this.normalize(this.selectedCategory);
+                    return Number(product.category_id) ===
+                        Number(supplier.category_id);
                 });
 
             this.resetRows();

@@ -405,26 +405,37 @@ class ReportController extends Controller
         foreach ($sale->refunds as $refund) {
             /*
             |--------------------------------------------------------------------------
-            | Cari harga produk pada transaksi aslinya
+            | Gunakan unit_price yang tersimpan di baris refund
             |--------------------------------------------------------------------------
             |
-            | Harga refund harus menggunakan harga saat transaksi penjualan,
-            | bukan harga produk terbaru pada tabel products.
+            | Sejak refunds.unit_price ditambahkan, harga historis sudah
+            | terkunci saat refund dibuat dan tidak lagi perlu dicari ulang
+            | ke sale_details setiap kali laporan dihitung.
+            |
+            | Fallback ke sale_details HANYA untuk baris refund lama yang
+            | dibuat sebelum kolom ini ada dan belum sempat di-backfill.
+            | Baris baru selalu sudah punya unit_price.
             |
             */
-            $saleDetail = $sale->details
-                ->firstWhere(
-                    'kode_produk',
-                    $refund->kode_produk
-                );
+            $unitPrice = $refund->unit_price;
 
-            if (!$saleDetail) {
-                continue;
+            if ($unitPrice === null) {
+                $saleDetail = $sale->details
+                    ->firstWhere(
+                        'kode_produk',
+                        $refund->kode_produk
+                    );
+
+                if (!$saleDetail) {
+                    continue;
+                }
+
+                $unitPrice = $saleDetail->unit_price;
             }
 
             $refundNominal +=
                 (int) $refund->quantity
-                * (float) $saleDetail->unit_price;
+                * (float) $unitPrice;
         }
 
         return $refundNominal;

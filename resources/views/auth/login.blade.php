@@ -89,10 +89,6 @@
                 </button>
             </form>
         </div>
-
-        <p class="text-center text-gray-500 text-xs mt-6">
-            &copy; {{ date('Y') }} Toko Grosir IJAD. All rights reserved.
-        </p>
     </div>
 
 </body>

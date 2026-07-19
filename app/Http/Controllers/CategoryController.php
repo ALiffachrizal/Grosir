@@ -10,32 +10,31 @@ use Illuminate\Http\Request;
 class CategoryController extends Controller
 {
     /**
-     * Menampilkan kategori produk, supplier, dan satuan tambahan.
+     * Menampilkan kategori (dipakai bersama produk & supplier) dan satuan.
+     *
+     * Sejak kategori supplier digabung ke kategori produk, halaman ini
+     * tidak lagi menampilkan "Kategori Produk" dan "Kategori Supplier"
+     * sebagai 2 daftar terpisah — sekarang cukup 1 daftar kategori yang
+     * dipakai bersama oleh keduanya.
      */
     public function index()
     {
-        $productCategories = Category::product()
+        $categories = Category::product()
             ->orderBy('name')
             ->get();
 
-        $supplierCategories = Category::supplier()
-            ->orderBy('name')
-            ->get();
-
-        $unitCategories = Category::where('type', 'unit')
+        $unitCategories = Category::unit()
             ->orderBy('name')
             ->get();
 
         return view('categories.index', compact(
-            'productCategories',
-            'supplierCategories',
+            'categories',
             'unitCategories'
         ));
     }
 
     /**
-     * Menambahkan kategori produk, kategori supplier,
-     * atau satuan tambahan.
+     * Menambahkan kategori (dipakai produk & supplier) atau satuan tambahan.
      */
     public function store(Request $request)
     {
@@ -54,7 +53,7 @@ class CategoryController extends Controller
             ],
             'type' => [
                 'required',
-                'in:product,supplier,unit',
+                'in:product,unit',
             ],
         ], [
             'kode_kategori.required' => 'Kode kategori wajib diisi.',
@@ -71,15 +70,6 @@ class CategoryController extends Controller
             'type.in' => 'Tipe kategori tidak valid.',
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Normalisasi input
-        |--------------------------------------------------------------------------
-        |
-        | Kode dan nama disimpan dalam huruf kapital agar data kategori
-        | dan satuan tetap konsisten.
-        |
-        */
         $kodeKategori = strtoupper(trim($request->kode_kategori));
         $name = strtoupper(trim($request->name));
         $type = $request->type;
@@ -88,10 +78,6 @@ class CategoryController extends Controller
         |--------------------------------------------------------------------------
         | Cegah satuan bawaan ditambahkan sebagai satuan tambahan
         |--------------------------------------------------------------------------
-        |
-        | PCS, BOTOL, LITER, dan KG sudah tersedia dari Product.
-        | Karena itu nama tersebut tidak boleh dibuat lagi pada database.
-        |
         */
         if (
             $type === 'unit'
@@ -109,11 +95,6 @@ class CategoryController extends Controller
         |--------------------------------------------------------------------------
         | Cek duplikat nama berdasarkan tipe
         |--------------------------------------------------------------------------
-        |
-        | Nama yang sama masih boleh digunakan pada tipe berbeda.
-        | Contoh: nama yang sama dapat digunakan untuk kategori produk
-        | dan kategori supplier apabila memang diperlukan.
-        |
         */
         $categoryExists = Category::where('type', $type)
             ->whereRaw('UPPER(name) = ?', [$name])
@@ -151,53 +132,41 @@ class CategoryController extends Controller
     {
         /*
         |--------------------------------------------------------------------------
-        | Kategori produk
+        | Kategori (dipakai produk & supplier)
         |--------------------------------------------------------------------------
         |
-        | Kategori produk tidak boleh dihapus jika masih digunakan
-        | oleh satu atau lebih produk.
-        |
+        | Karena sekarang 1 kategori bisa dipakai bersama oleh produk
+        | MAUPUN supplier, kedua relasi ini harus dicek sebelum kategori
+        | boleh dihapus — bukan cuma salah satu seperti sebelumnya.
         */
-        if ($category->type === 'product' && $category->products()->exists()) {
+        if ($category->type === 'product') {
             $jumlahProduk = $category->products()->count();
-
-            return back()->with(
-                'error',
-                'Kategori produk "' . $category->name .
-                '" tidak dapat dihapus karena masih digunakan oleh ' .
-                $jumlahProduk . ' produk.'
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Kategori supplier
-        |--------------------------------------------------------------------------
-        |
-        | Kategori supplier tidak boleh dihapus jika masih digunakan
-        | oleh satu atau lebih supplier.
-        |
-        */
-        if ($category->type === 'supplier' && $category->suppliers()->exists()) {
             $jumlahSupplier = $category->suppliers()->count();
 
-            return back()->with(
-                'error',
-                'Kategori supplier "' . $category->name .
-                '" tidak dapat dihapus karena masih digunakan oleh ' .
-                $jumlahSupplier . ' supplier.'
-            );
+            if ($jumlahProduk > 0 || $jumlahSupplier > 0) {
+                $rincian = [];
+
+                if ($jumlahProduk > 0) {
+                    $rincian[] = $jumlahProduk . ' produk';
+                }
+
+                if ($jumlahSupplier > 0) {
+                    $rincian[] = $jumlahSupplier . ' supplier';
+                }
+
+                return back()->with(
+                    'error',
+                    'Kategori "' . $category->name .
+                    '" tidak dapat dihapus karena masih digunakan oleh ' .
+                    implode(' dan ', $rincian) . '.'
+                );
+            }
         }
 
         /*
         |--------------------------------------------------------------------------
         | Satuan tambahan
         |--------------------------------------------------------------------------
-        |
-        | Satuan disimpan sebagai teks pada products.base_unit sehingga
-        | tidak memiliki foreign key langsung ke tabel categories.
-        | Karena itu pemeriksaannya dilakukan secara manual.
-        |
         */
         if ($category->type === 'unit') {
             $jumlahProduk = Product::whereRaw(
@@ -218,15 +187,6 @@ class CategoryController extends Controller
         $name = $category->name;
         $label = $this->getTypeLabel($category->type);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Hapus data
-        |--------------------------------------------------------------------------
-        |
-        | QueryException tetap ditangani untuk mencegah pengguna melihat
-        | halaman error database jika terdapat relasi yang belum terdeteksi.
-        |
-        */
         try {
             $category->delete();
         } catch (QueryException $exception) {
@@ -245,14 +205,10 @@ class CategoryController extends Controller
         );
     }
 
-    /**
-     * Mengubah nilai type menjadi nama yang mudah dibaca pengguna.
-     */
     private function getTypeLabel(string $type): string
     {
         return match ($type) {
-            'product' => 'kategori produk',
-            'supplier' => 'kategori supplier',
+            'product' => 'kategori',
             'unit' => 'satuan',
             default => 'kategori',
         };

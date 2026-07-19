@@ -16,15 +16,30 @@ class Category extends Model
         'type',
     ];
 
+    // ==================== SCOPES ====================
+
+    /**
+     * Kategori bertipe 'product'.
+     *
+     * Sejak kategori supplier digabung ke kategori produk (lihat migration
+     * 2026_07_14_000001_merge_supplier_categories_into_product), scope ini
+     * sekarang dipakai BERSAMA oleh produk maupun supplier — bukan cuma
+     * produk saja seperti sebelumnya.
+     */
     public function scopeProduct($query)
     {
         return $query->where('type', 'product');
     }
 
-    public function scopeSupplier($query)
+    /**
+     * Kategori bertipe 'unit' (satuan produk: PCS, BOTOL, LITER, dst).
+     */
+    public function scopeUnit($query)
     {
-        return $query->where('type', 'supplier');
+        return $query->where('type', 'unit');
     }
+
+    // ==================== RELASI ====================
 
     public function products(): HasMany
     {
