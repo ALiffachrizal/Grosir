@@ -63,6 +63,7 @@ Route::middleware(['auth'])->group(function () {
         // Penjualan
         Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
         Route::get('/sales/create', [SaleController::class, 'create'])->name('sales.create');
+        Route::get('/sales/products/search', [SaleController::class, 'searchProducts'])->name('sales.products.search');
         Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
         Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
         Route::get('/sales/{sale}/receipt', [SaleController::class, 'receipt'])->name('sales.receipt');

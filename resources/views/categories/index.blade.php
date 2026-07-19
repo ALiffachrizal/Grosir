@@ -2,7 +2,7 @@
 
 @section('title', 'Kategori')
 @section('page-title', 'Kelola Kategori')
-@section('page-subtitle', 'Manajemen kategori produk, supplier, dan satuan')
+@section('page-subtitle', 'Manajemen kategori (dipakai bersama produk & supplier) dan satuan')
 
 @section('content')
 
@@ -11,23 +11,8 @@
     |--------------------------------------------------------------------------
     | Satuan Bawaan
     |--------------------------------------------------------------------------
-    |
-    | Bagian ini hanya mengambil satuan bawaan asli dari konstanta Product.
-    | Jangan menggunakan Product::getBaseUnits() karena fungsi tersebut sudah
-    | menggabungkan satuan bawaan dan satuan tambahan dari database.
-    |
     */
     $systemUnits = \App\Models\Product::BASE_UNITS_DEFAULT;
-
-    /*
-    |--------------------------------------------------------------------------
-    | Total Satuan
-    |--------------------------------------------------------------------------
-    |
-    | Total satuan merupakan jumlah satuan bawaan ditambah satuan tambahan
-    | yang tersimpan pada tabel categories dengan type = unit.
-    |
-    */
     $totalUnits = count($systemUnits) + $unitCategories->count();
 @endphp
 
@@ -78,50 +63,27 @@
     {{-- ========================================================= --}}
     {{-- RINGKASAN DATA --}}
     {{-- ========================================================= --}}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-        {{-- Kategori Produk --}}
+        {{-- Kategori (dipakai produk & supplier) --}}
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <div class="flex items-center justify-between gap-4">
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wide text-gray-400">
-                        Kategori Produk
+                        Kategori
                     </p>
 
                     <p class="mt-1 text-2xl font-bold text-gray-800">
-                        {{ $productCategories->count() }}
+                        {{ $categories->count() }}
                     </p>
 
                     <p class="mt-1 text-xs text-gray-500">
-                        kategori terdaftar
+                        kategori terdaftar &middot; dipakai produk & supplier
                     </p>
                 </div>
 
                 <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl">
                     🏷️
-                </div>
-            </div>
-        </div>
-
-        {{-- Kategori Supplier --}}
-        <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-            <div class="flex items-center justify-between gap-4">
-                <div>
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-400">
-                        Kategori Supplier
-                    </p>
-
-                    <p class="mt-1 text-2xl font-bold text-gray-800">
-                        {{ $supplierCategories->count() }}
-                    </p>
-
-                    <p class="mt-1 text-xs text-gray-500">
-                        kategori terdaftar
-                    </p>
-                </div>
-
-                <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-xl">
-                    🏭
                 </div>
             </div>
         </div>
@@ -151,404 +113,201 @@
     </div>
 
     {{-- ========================================================= --}}
-    {{-- KATEGORI PRODUK DAN SUPPLIER --}}
+    {{-- KATEGORI (DIPAKAI BERSAMA PRODUK & SUPPLIER) --}}
     {{-- ========================================================= --}}
-    <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+    <div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
 
-        {{-- ===================================================== --}}
-        {{-- KATEGORI PRODUK --}}
-        {{-- ===================================================== --}}
-        <div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+        {{-- Header --}}
+        <div class="flex items-center justify-between gap-3 border-b border-gray-100 p-5">
+            <div class="flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-lg">
+                    🏷️
+                </div>
 
-            {{-- Header --}}
-            <div class="flex items-center justify-between gap-3 border-b border-gray-100 p-5">
-                <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-lg">
+                <div>
+                    <h3 class="font-semibold text-gray-800">
+                        Kategori
+                    </h3>
+
+                    <p class="mt-0.5 text-xs text-gray-500">
+                        Satu kategori dipakai bersama oleh produk dan supplier
+                    </p>
+                </div>
+            </div>
+
+            <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
+                {{ $categories->count() }} kategori
+            </span>
+        </div>
+
+        {{-- Form Tambah Kategori --}}
+        <details
+            class="group border-b border-gray-100"
+            @if(old('type') === 'product' && $errors->any()) open @endif
+        >
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-3 bg-gray-50 px-5 py-3.5 transition hover:bg-blue-50">
+                <div class="flex items-center gap-2">
+                    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 font-bold text-white">
+                        +
+                    </span>
+
+                    <span class="text-sm font-semibold text-gray-700">
+                        Tambah Kategori
+                    </span>
+                </div>
+
+                <span class="text-gray-400 transition-transform group-open:rotate-180">
+                    ▼
+                </span>
+            </summary>
+
+            <div class="bg-blue-50/30 p-5">
+                <form
+                    action="{{ route('categories.store') }}"
+                    method="POST"
+                    class="space-y-4"
+                >
+                    @csrf
+
+                    <input type="hidden" name="type" value="product">
+
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+
+                        {{-- Kode Kategori --}}
+                        <div>
+                            <label
+                                for="category-kode-kategori"
+                                class="mb-1.5 block text-xs font-medium text-gray-600"
+                            >
+                                Kode Kategori
+                                <span class="text-red-500">*</span>
+                            </label>
+
+                            <input
+                                id="category-kode-kategori"
+                                type="text"
+                                name="kode_kategori"
+                                value="{{ old('type') === 'product' ? old('kode_kategori') : '' }}"
+                                placeholder="KAT005"
+                                maxlength="10"
+                                required
+                                autocomplete="off"
+                                oninput="this.value = this.value.toUpperCase()"
+                                class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+
+                            @if(old('type') === 'product')
+                                @error('kode_kategori')
+                                    <p class="mt-1 text-xs text-red-500">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+                            @endif
+                        </div>
+
+                        {{-- Nama Kategori --}}
+                        <div class="sm:col-span-2">
+                            <label
+                                for="category-name"
+                                class="mb-1.5 block text-xs font-medium text-gray-600"
+                            >
+                                Nama Kategori
+                                <span class="text-red-500">*</span>
+                            </label>
+
+                            <input
+                                id="category-name"
+                                type="text"
+                                name="name"
+                                value="{{ old('type') === 'product' ? old('name') : '' }}"
+                                placeholder="Contoh: MAKANAN INSTAN"
+                                maxlength="100"
+                                required
+                                autocomplete="off"
+                                oninput="this.value = this.value.toUpperCase()"
+                                class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+
+                            @if(old('type') === 'product')
+                                @error('name')
+                                    <p class="mt-1 text-xs text-red-500">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                        <p class="text-xs text-gray-400">
+                            Contoh kode: KAT001, KAT002
+                        </p>
+
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                        >
+                            + Simpan Kategori
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </details>
+
+        {{-- Daftar Kategori --}}
+        <div class="divide-y divide-gray-100">
+            @forelse($categories as $category)
+                <div class="flex items-center justify-between gap-4 px-5 py-3.5 transition hover:bg-gray-50">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500"></span>
+
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-medium text-gray-800">
+                                {{ $category->name }}
+                            </p>
+
+                            <p class="mt-0.5 text-xs text-gray-400">
+                                {{ $category->products()->count() }} produk &middot;
+                                {{ $category->suppliers()->count() }} supplier
+                            </p>
+                        </div>
+
+                        <span class="shrink-0 rounded-md bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-500">
+                            {{ $category->kode_kategori }}
+                        </span>
+                    </div>
+
+                    <form
+                        action="{{ route('categories.destroy', $category) }}"
+                        method="POST"
+                        onsubmit="return confirm('Hapus kategori {{ $category->name }}?')"
+                    >
+                        @csrf
+                        @method('DELETE')
+
+                        <button
+                            type="submit"
+                            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 hover:text-red-700"
+                        >
+                            🗑️ Hapus
+                        </button>
+                    </form>
+                </div>
+            @empty
+                <div class="py-10 text-center text-gray-400">
+                    <div class="mb-2 text-3xl">
                         🏷️
                     </div>
 
-                    <div>
-                        <h3 class="font-semibold text-gray-800">
-                            Kategori Produk
-                        </h3>
+                    <p class="text-sm font-medium">
+                        Belum ada kategori
+                    </p>
 
-                        <p class="mt-0.5 text-xs text-gray-500">
-                            Kelompok kategori untuk produk toko
-                        </p>
-                    </div>
+                    <p class="mt-1 text-xs">
+                        Klik Tambah Kategori untuk menambahkan.
+                    </p>
                 </div>
-
-                <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-                    {{ $productCategories->count() }} kategori
-                </span>
-            </div>
-
-            {{-- Form Tambah Kategori Produk --}}
-            <details
-                class="group border-b border-gray-100"
-                @if(old('type') === 'product' && $errors->any()) open @endif
-            >
-                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 bg-gray-50 px-5 py-3.5 transition hover:bg-blue-50">
-                    <div class="flex items-center gap-2">
-                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 font-bold text-white">
-                            +
-                        </span>
-
-                        <span class="text-sm font-semibold text-gray-700">
-                            Tambah Kategori Produk
-                        </span>
-                    </div>
-
-                    <span class="text-gray-400 transition-transform group-open:rotate-180">
-                        ▼
-                    </span>
-                </summary>
-
-                <div class="bg-blue-50/30 p-5">
-                    <form
-                        action="{{ route('categories.store') }}"
-                        method="POST"
-                        class="space-y-4"
-                    >
-                        @csrf
-
-                        <input type="hidden" name="type" value="product">
-
-                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-
-                            {{-- Kode Kategori Produk --}}
-                            <div>
-                                <label
-                                    for="product-kode-kategori"
-                                    class="mb-1.5 block text-xs font-medium text-gray-600"
-                                >
-                                    Kode Kategori
-                                    <span class="text-red-500">*</span>
-                                </label>
-
-                                <input
-                                    id="product-kode-kategori"
-                                    type="text"
-                                    name="kode_kategori"
-                                    value="{{ old('type') === 'product' ? old('kode_kategori') : '' }}"
-                                    placeholder="KAT005"
-                                    maxlength="10"
-                                    required
-                                    autocomplete="off"
-                                    oninput="this.value = this.value.toUpperCase()"
-                                    class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-
-                                @if(old('type') === 'product')
-                                    @error('kode_kategori')
-                                        <p class="mt-1 text-xs text-red-500">
-                                            {{ $message }}
-                                        </p>
-                                    @enderror
-                                @endif
-                            </div>
-
-                            {{-- Nama Kategori Produk --}}
-                            <div class="sm:col-span-2">
-                                <label
-                                    for="product-name"
-                                    class="mb-1.5 block text-xs font-medium text-gray-600"
-                                >
-                                    Nama Kategori
-                                    <span class="text-red-500">*</span>
-                                </label>
-
-                                <input
-                                    id="product-name"
-                                    type="text"
-                                    name="name"
-                                    value="{{ old('type') === 'product' ? old('name') : '' }}"
-                                    placeholder="Contoh: MAKANAN INSTAN"
-                                    maxlength="100"
-                                    required
-                                    autocomplete="off"
-                                    oninput="this.value = this.value.toUpperCase()"
-                                    class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-
-                                @if(old('type') === 'product')
-                                    @error('name')
-                                        <p class="mt-1 text-xs text-red-500">
-                                            {{ $message }}
-                                        </p>
-                                    @enderror
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                            <p class="text-xs text-gray-400">
-                                Contoh kode: KAT001, KAT002
-                            </p>
-
-                            <button
-                                type="submit"
-                                class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-                            >
-                                + Simpan Kategori
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </details>
-
-            {{-- Daftar Kategori Produk --}}
-            <div class="divide-y divide-gray-100">
-                @forelse($productCategories as $category)
-                    <div class="flex items-center justify-between gap-4 px-5 py-3.5 transition hover:bg-gray-50">
-                        <div class="flex min-w-0 items-center gap-3">
-                            <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500"></span>
-
-                            <div class="min-w-0">
-                                <p class="truncate text-sm font-medium text-gray-800">
-                                    {{ $category->name }}
-                                </p>
-
-                                <p class="mt-0.5 text-xs text-gray-400">
-                                    Kategori produk
-                                </p>
-                            </div>
-
-                            <span class="shrink-0 rounded-md bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-500">
-                                {{ $category->kode_kategori }}
-                            </span>
-                        </div>
-
-                        <form
-                            action="{{ route('categories.destroy', $category) }}"
-                            method="POST"
-                            onsubmit="return confirm('Hapus kategori {{ $category->name }}?')"
-                        >
-                            @csrf
-                            @method('DELETE')
-
-                            <button
-                                type="submit"
-                                class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 hover:text-red-700"
-                            >
-                                🗑️ Hapus
-                            </button>
-                        </form>
-                    </div>
-                @empty
-                    <div class="py-10 text-center text-gray-400">
-                        <div class="mb-2 text-3xl">
-                            🏷️
-                        </div>
-
-                        <p class="text-sm font-medium">
-                            Belum ada kategori produk
-                        </p>
-
-                        <p class="mt-1 text-xs">
-                            Klik Tambah Kategori Produk untuk menambahkan.
-                        </p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-
-        {{-- ===================================================== --}}
-        {{-- KATEGORI SUPPLIER --}}
-        {{-- ===================================================== --}}
-        <div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-
-            {{-- Header --}}
-            <div class="flex items-center justify-between gap-3 border-b border-gray-100 p-5">
-                <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-lg">
-                        🏭
-                    </div>
-
-                    <div>
-                        <h3 class="font-semibold text-gray-800">
-                            Kategori Supplier
-                        </h3>
-
-                        <p class="mt-0.5 text-xs text-gray-500">
-                            Kelompok kategori untuk pemasok
-                        </p>
-                    </div>
-                </div>
-
-                <span class="inline-flex items-center rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
-                    {{ $supplierCategories->count() }} kategori
-                </span>
-            </div>
-
-            {{-- Form Tambah Kategori Supplier --}}
-            <details
-                class="group border-b border-gray-100"
-                @if(old('type') === 'supplier' && $errors->any()) open @endif
-            >
-                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 bg-gray-50 px-5 py-3.5 transition hover:bg-green-50">
-                    <div class="flex items-center gap-2">
-                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-green-600 font-bold text-white">
-                            +
-                        </span>
-
-                        <span class="text-sm font-semibold text-gray-700">
-                            Tambah Kategori Supplier
-                        </span>
-                    </div>
-
-                    <span class="text-gray-400 transition-transform group-open:rotate-180">
-                        ▼
-                    </span>
-                </summary>
-
-                <div class="bg-green-50/30 p-5">
-                    <form
-                        action="{{ route('categories.store') }}"
-                        method="POST"
-                        class="space-y-4"
-                    >
-                        @csrf
-
-                        <input type="hidden" name="type" value="supplier">
-
-                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-
-                            {{-- Kode Kategori Supplier --}}
-                            <div>
-                                <label
-                                    for="supplier-kode-kategori"
-                                    class="mb-1.5 block text-xs font-medium text-gray-600"
-                                >
-                                    Kode Kategori
-                                    <span class="text-red-500">*</span>
-                                </label>
-
-                                <input
-                                    id="supplier-kode-kategori"
-                                    type="text"
-                                    name="kode_kategori"
-                                    value="{{ old('type') === 'supplier' ? old('kode_kategori') : '' }}"
-                                    placeholder="SUP005"
-                                    maxlength="10"
-                                    required
-                                    autocomplete="off"
-                                    oninput="this.value = this.value.toUpperCase()"
-                                    class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-green-500"
-                                >
-
-                                @if(old('type') === 'supplier')
-                                    @error('kode_kategori')
-                                        <p class="mt-1 text-xs text-red-500">
-                                            {{ $message }}
-                                        </p>
-                                    @enderror
-                                @endif
-                            </div>
-
-                            {{-- Nama Kategori Supplier --}}
-                            <div class="sm:col-span-2">
-                                <label
-                                    for="supplier-name"
-                                    class="mb-1.5 block text-xs font-medium text-gray-600"
-                                >
-                                    Nama Kategori
-                                    <span class="text-red-500">*</span>
-                                </label>
-
-                                <input
-                                    id="supplier-name"
-                                    type="text"
-                                    name="name"
-                                    value="{{ old('type') === 'supplier' ? old('name') : '' }}"
-                                    placeholder="Contoh: DISTRIBUTOR MINUMAN"
-                                    maxlength="100"
-                                    required
-                                    autocomplete="off"
-                                    oninput="this.value = this.value.toUpperCase()"
-                                    class="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-green-500"
-                                >
-
-                                @if(old('type') === 'supplier')
-                                    @error('name')
-                                        <p class="mt-1 text-xs text-red-500">
-                                            {{ $message }}
-                                        </p>
-                                    @enderror
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                            <p class="text-xs text-gray-400">
-                                Contoh kode: SUP001, SUP002
-                            </p>
-
-                            <button
-                                type="submit"
-                                class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700"
-                            >
-                                + Simpan Kategori
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </details>
-
-            {{-- Daftar Kategori Supplier --}}
-            <div class="divide-y divide-gray-100">
-                @forelse($supplierCategories as $category)
-                    <div class="flex items-center justify-between gap-4 px-5 py-3.5 transition hover:bg-gray-50">
-                        <div class="flex min-w-0 items-center gap-3">
-                            <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-green-500"></span>
-
-                            <div class="min-w-0">
-                                <p class="truncate text-sm font-medium text-gray-800">
-                                    {{ $category->name }}
-                                </p>
-
-                                <p class="mt-0.5 text-xs text-gray-400">
-                                    Kategori supplier
-                                </p>
-                            </div>
-
-                            <span class="shrink-0 rounded-md bg-gray-100 px-2 py-1 text-[11px] font-medium text-gray-500">
-                                {{ $category->kode_kategori }}
-                            </span>
-                        </div>
-
-                        <form
-                            action="{{ route('categories.destroy', $category) }}"
-                            method="POST"
-                            onsubmit="return confirm('Hapus kategori {{ $category->name }}?')"
-                        >
-                            @csrf
-                            @method('DELETE')
-
-                            <button
-                                type="submit"
-                                class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50 hover:text-red-700"
-                            >
-                                🗑️ Hapus
-                            </button>
-                        </form>
-                    </div>
-                @empty
-                    <div class="py-10 text-center text-gray-400">
-                        <div class="mb-2 text-3xl">
-                            🏭
-                        </div>
-
-                        <p class="text-sm font-medium">
-                            Belum ada kategori supplier
-                        </p>
-
-                        <p class="mt-1 text-xs">
-                            Klik Tambah Kategori Supplier untuk menambahkan.
-                        </p>
-                    </div>
-                @endforelse
-            </div>
+            @endforelse
         </div>
     </div>
 
@@ -609,7 +368,6 @@
                 >
                     @csrf
 
-                    {{-- Satuan tetap disimpan pada tabel categories --}}
                     <input type="hidden" name="type" value="unit">
 
                     {{-- Kode Satuan --}}

@@ -255,6 +255,33 @@ class RefundController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
+                | Ambil harga jual saat transaksi asli
+                |--------------------------------------------------------------------------
+                |
+                | Diambil dari sale_details.unit_price (harga saat penjualan
+                | terjadi), lalu disimpan langsung ke kolom refunds.unit_price
+                | supaya nilai historis ini terkunci dan tidak lagi bergantung
+                | pada sale_details di masa depan.
+                |
+                | Query mengambil satu baris saja karena satu produk yang sama
+                | pada satu transaksi selalu terjual dengan harga yang sama.
+                |
+                */
+                $saleDetail = SaleDetail::query()
+                    ->where('sale_id', $sale->id)
+                    ->where('kode_produk', $kodeProduk)
+                    ->first();
+
+                if (!$saleDetail) {
+                    throw ValidationException::withMessages([
+                        'items' =>
+                            'Produk ' . $kodeProduk .
+                            ' tidak terdapat dalam transaksi ini.',
+                    ]);
+                }
+
+                /*
+                |--------------------------------------------------------------------------
                 | Hitung total pembelian produk
                 |--------------------------------------------------------------------------
                 |
@@ -266,14 +293,6 @@ class RefundController extends Controller
                     ->where('sale_id', $sale->id)
                     ->where('kode_produk', $kodeProduk)
                     ->sum('quantity');
-
-                if ($purchasedQuantity < 1) {
-                    throw ValidationException::withMessages([
-                        'items' =>
-                            'Produk ' . $kodeProduk .
-                            ' tidak terdapat dalam transaksi ini.',
-                    ]);
-                }
 
                 /*
                 |--------------------------------------------------------------------------
@@ -324,7 +343,7 @@ class RefundController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Simpan refund
+                | Simpan refund (termasuk unit_price historis)
                 |--------------------------------------------------------------------------
                 */
                 $refund = Refund::create([
@@ -332,6 +351,7 @@ class RefundController extends Controller
                     'kode_produk' => $kodeProduk,
                     'user_id' => auth()->id(),
                     'quantity' => $requestedQuantity,
+                    'unit_price' => $saleDetail->unit_price,
                     'date' => Carbon::today(),
                 ]);
 
