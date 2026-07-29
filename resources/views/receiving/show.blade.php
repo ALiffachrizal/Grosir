@@ -14,7 +14,7 @@
     };
 @endphp
 
-<div class="max-w-5xl mx-auto space-y-4">
+<div class="max-w-5xl mx-auto space-y-4" x-data="{ showConfirmModal: false, showCancelModal: false }">
 
     {{-- ========================================================= --}}
     {{-- INFORMASI PURCHASE ORDER --}}
@@ -322,6 +322,17 @@
 
                     Tindakan ini tidak dapat dibatalkan.
                 </p>
+
+                <p class="text-sm text-yellow-700 leading-relaxed mt-2">
+                    Jika barang ternyata tidak jadi dikirim oleh supplier,
+                    gunakan tombol
+
+                    <span class="font-semibold">
+                        Batalkan PO
+                    </span>
+
+                    di bawah — bukan tombol konfirmasi.
+                </p>
             </div>
         </div>
     </div>
@@ -331,7 +342,9 @@
     {{-- ========================================================= --}}
     <div class="flex flex-col sm:flex-row gap-3 pb-2">
 
+        {{-- Form konfirmasi — tidak lagi submit langsung, tombolnya cuma buka modal --}}
         <form
+            x-ref="confirmForm"
             action="{{ route('receiving.confirm', $purchaseOrder) }}"
             method="POST"
             class="flex-1"
@@ -339,13 +352,33 @@
             @csrf
 
             <button
-                type="submit"
-                onclick="return confirm('Yakin ingin mengonfirmasi penerimaan barang ini?')"
+                type="button"
+                @click="showConfirmModal = true"
                 class="w-full bg-green-600 hover:bg-green-700
                        text-white py-3 rounded-xl
                        font-semibold text-sm shadow-sm transition"
             >
                 ✅ Konfirmasi Penerimaan
+            </button>
+        </form>
+
+        {{-- Form batal — sama, tombolnya cuma buka modal --}}
+        <form
+            x-ref="cancelForm"
+            action="{{ route('receiving.cancel', $purchaseOrder) }}"
+            method="POST"
+            class="flex-1"
+        >
+            @csrf
+
+            <button
+                type="button"
+                @click="showCancelModal = true"
+                class="w-full bg-red-50 hover:bg-red-100 border border-red-200
+                       text-red-600 py-3 rounded-xl
+                       font-semibold text-sm transition"
+            >
+                ✕ Batalkan PO
             </button>
         </form>
 
@@ -358,6 +391,151 @@
         >
             ← Kembali
         </a>
+    </div>
+
+    {{-- ========================================================= --}}
+    {{-- MODAL: KONFIRMASI PENERIMAAN --}}
+    {{-- ========================================================= --}}
+    <div
+        x-show="showConfirmModal"
+        x-cloak
+        @keydown.escape.window="showConfirmModal = false"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="display: none;"
+    >
+        {{-- Backdrop --}}
+        <div
+            x-show="showConfirmModal"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @click="showConfirmModal = false"
+            class="absolute inset-0 bg-gray-900/50"
+        ></div>
+
+        {{-- Kartu modal --}}
+        <div
+            x-show="showConfirmModal"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6"
+        >
+            <div class="flex flex-col items-center text-center">
+
+                <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-3xl mb-4">
+                    ✅
+                </div>
+
+                <h3 class="text-lg font-bold text-gray-800">
+                    Konfirmasi Penerimaan?
+                </h3>
+
+                <p class="text-sm text-gray-500 mt-2 leading-relaxed">
+                    Stok produk akan bertambah sesuai jumlah yang diterima.
+                    Tindakan ini tidak dapat dibatalkan.
+                </p>
+
+                <div class="flex gap-3 w-full mt-6">
+                    <button
+                        type="button"
+                        @click="showConfirmModal = false"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700
+                               py-2.5 rounded-xl text-sm font-semibold transition"
+                    >
+                        Batal
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="$refs.confirmForm.submit()"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white
+                               py-2.5 rounded-xl text-sm font-semibold shadow-sm transition"
+                    >
+                        Ya, Konfirmasi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ========================================================= --}}
+    {{-- MODAL: BATALKAN PO --}}
+    {{-- ========================================================= --}}
+    <div
+        x-show="showCancelModal"
+        x-cloak
+        @keydown.escape.window="showCancelModal = false"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="display: none;"
+    >
+        {{-- Backdrop --}}
+        <div
+            x-show="showCancelModal"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @click="showCancelModal = false"
+            class="absolute inset-0 bg-gray-900/50"
+        ></div>
+
+        {{-- Kartu modal --}}
+        <div
+            x-show="showCancelModal"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6"
+        >
+            <div class="flex flex-col items-center text-center">
+
+                <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center text-3xl mb-4">
+                    ✕
+                </div>
+
+                <h3 class="text-lg font-bold text-gray-800">
+                    Batalkan Purchase Order?
+                </h3>
+
+                <p class="text-sm text-gray-500 mt-2 leading-relaxed">
+                    Barang dianggap tidak jadi dikirim oleh supplier.
+                    Purchase order ini akan ditandai sebagai
+                    <span class="font-semibold text-gray-700">Dibatalkan</span>.
+                </p>
+
+                <div class="flex gap-3 w-full mt-6">
+                    <button
+                        type="button"
+                        @click="showCancelModal = false"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700
+                               py-2.5 rounded-xl text-sm font-semibold transition"
+                    >
+                        Batal
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="$refs.cancelForm.submit()"
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white
+                               py-2.5 rounded-xl text-sm font-semibold shadow-sm transition"
+                    >
+                        Ya, Batalkan
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>

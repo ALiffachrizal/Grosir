@@ -27,7 +27,7 @@ class ReceivingController extends Controller
     {
         if ($purchaseOrder->status !== 'pending') {
             return redirect()->route('receiving.index')
-                ->with('error', 'Purchase order ini sudah diterima.');
+                ->with('error', 'Purchase order ini sudah ' . $purchaseOrder->status_label . '.');
         }
 
         $purchaseOrder->load(['supplier', 'user', 'details.product']);
@@ -39,79 +39,23 @@ class ReceivingController extends Controller
 
     public function confirm(PurchaseOrder $purchaseOrder)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Pengecekan awal (fast-path, sebelum masuk transaksi)
-        |--------------------------------------------------------------------------
-        | Ini hanya optimisasi ringan — jika PO sudah jelas berstatus received,
-        | kita tidak perlu masuk ke dalam transaksi sama sekali.
-        | Pengecekan yang AMAN tetap dilakukan di dalam lock di bawah.
-        */
         if ($purchaseOrder->status !== 'pending') {
             return redirect()->route('receiving.index')
-                ->with('error', 'Purchase order ini sudah diterima.');
+                ->with('error', 'Purchase order ini sudah ' . $purchaseOrder->status_label . '.');
         }
 
         try {
-            /*
-            |----------------------------------------------------------------------
-            | DB::transaction dengan retry 3x
-            |----------------------------------------------------------------------
-            | Parameter ke-2 (3) berarti Laravel akan otomatis retry transaksi
-            | hingga 3 kali jika terjadi deadlock di MySQL. Ini penting karena
-            | kita mengunci banyak baris sekaligus (PO + beberapa produk).
-            */
             DB::transaction(function () use ($purchaseOrder) {
 
-                /*
-                |------------------------------------------------------------------
-                | LANGKAH 1: Kunci baris PurchaseOrder
-                |------------------------------------------------------------------
-                | lockForUpdate() menambahkan "FOR UPDATE" pada query MySQL.
-                | Artinya: request lain yang mencoba mengunci baris yang sama
-                | akan MENUNGGU sampai transaksi ini selesai.
-                |
-                | Tanpa ini, dua request (misal double-click tombol konfirmasi)
-                | bisa masuk ke sini secara bersamaan, sama-sama melihat status
-                | 'pending', dan akhirnya menambah stok dua kali.
-                */
                 $po = PurchaseOrder::lockForUpdate()
                     ->findOrFail($purchaseOrder->id);
 
-                /*
-                |------------------------------------------------------------------
-                | LANGKAH 2: Re-check status di dalam lock
-                |------------------------------------------------------------------
-                | Pengecekan di luar transaksi (di atas) tidak aman karena belum
-                | ada kunci baris. Request kedua yang tiba belakangan bisa saja
-                | sudah melewatinya.
-                |
-                | Di sini, setelah row terkunci, kita cek ulang. Jika request
-                | pertama sudah mengubah status ke 'received', request kedua
-                | akan berhenti di sini dengan aman — tanpa error, tanpa double
-                | stok.
-                */
                 if ($po->status !== 'pending') {
                     return;
                 }
 
                 $po->load(['supplier', 'details']);
 
-                /*
-                |------------------------------------------------------------------
-                | LANGKAH 3: Kunci semua produk sekaligus, urutan konsisten
-                |------------------------------------------------------------------
-                | Produk dikunci dalam SATU query (bukan satu per satu di loop)
-                | dan diurutkan berdasarkan kode_produk sebelum dikunci.
-                |
-                | Mengapa diurutkan? Deadlock terjadi ketika:
-                |   - Transaksi A mengunci PRD001 lalu menunggu PRD002
-                |   - Transaksi B mengunci PRD002 lalu menunggu PRD001
-                |
-                | Dengan urutan yang selalu sama (misal PRD001 → PRD002 → PRD003),
-                | dua transaksi tidak akan pernah saling menunggu dalam urutan
-                | yang berlawanan.
-                */
                 $kodeProdukList = $po->details
                     ->pluck('kode_produk')
                     ->unique()
@@ -124,11 +68,6 @@ class ReceivingController extends Controller
                     ->get()
                     ->keyBy('kode_produk');
 
-                /*
-                |------------------------------------------------------------------
-                | LANGKAH 4: Update stok dan catat ke stock_log
-                |------------------------------------------------------------------
-                */
                 foreach ($po->details as $detail) {
                     $product = $products->get($detail->kode_produk);
 
@@ -139,10 +78,8 @@ class ReceivingController extends Controller
                         );
                     }
 
-                    // Tambah stok produk
                     $product->increment('stock', $detail->quantity);
 
-                    // Catat perubahan stok ke audit trail
                     StockLog::create([
                         'kode_produk'    => $product->kode_produk,
                         'user_id'        => auth()->id(),
@@ -154,17 +91,9 @@ class ReceivingController extends Controller
                     ]);
                 }
 
-                /*
-                |------------------------------------------------------------------
-                | LANGKAH 5: Tandai PO sebagai sudah diterima
-                |------------------------------------------------------------------
-                | Ini dilakukan TERAKHIR, setelah semua stok berhasil diupdate.
-                | Jika ada error di langkah sebelumnya, status tidak akan berubah
-                | dan seluruh transaksi akan di-rollback oleh DB::transaction.
-                */
                 $po->update(['status' => 'received']);
 
-            }, 3); // retry hingga 3x jika deadlock
+            }, 3);
 
         } catch (\Throwable $e) {
             report($e);
@@ -175,5 +104,50 @@ class ReceivingController extends Controller
 
         return redirect()->route('receiving.index')
             ->with('success', 'Penerimaan barang berhasil dikonfirmasi. Stok telah diperbarui.');
+    }
+
+    // ==================== CANCEL ====================
+
+    /**
+     * Membatalkan Purchase Order yang statusnya masih 'pending'.
+     *
+     * Dipakai untuk kasus PO yang ternyata tidak jadi dipenuhi
+     * (misal supplier kehabisan stok, harga berubah, atau salah input
+     * saat membuat PO). PO yang sudah 'received' TIDAK BISA dibatalkan
+     * dari sini — karena stoknya sudah terlanjur bertambah, membatalkan
+     * PO yang sudah diterima butuh alur tersendiri (retur ke supplier),
+     * bukan sekadar ubah status.
+     *
+     * Memakai lockForUpdate yang sama seperti confirm(), supaya tidak
+     * mungkin terjadi PO yang sedang dikonfirmasi (menambah stok) di satu
+     * tab, dibatalkan bersamaan dari tab lain.
+     */
+    public function cancel(PurchaseOrder $purchaseOrder)
+    {
+        if ($purchaseOrder->status !== 'pending') {
+            return redirect()->route('receiving.index')
+                ->with('error', 'Purchase order ini sudah ' . $purchaseOrder->status_label . ', tidak bisa dibatalkan.');
+        }
+
+        try {
+            DB::transaction(function () use ($purchaseOrder) {
+                $po = PurchaseOrder::lockForUpdate()
+                    ->findOrFail($purchaseOrder->id);
+
+                if ($po->status !== 'pending') {
+                    return;
+                }
+
+                $po->update(['status' => 'cancelled']);
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('receiving.index')
+                ->with('error', 'Gagal membatalkan purchase order. Silakan coba lagi.');
+        }
+
+        return redirect()->route('receiving.index')
+            ->with('success', 'Purchase order berhasil dibatalkan.');
     }
 }

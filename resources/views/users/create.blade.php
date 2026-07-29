@@ -42,9 +42,9 @@
                     <option value="cashier"   {{ old('role') === 'cashier'   ? 'selected' : '' }}>
                         Kasir — Penjualan & Refund
                     </option>
-                    <option value="warehouse" {{ old('role') === 'warehouse' ? 'selected' : '' }}>
+                    <!-- <option value="warehouse" {{ old('role') === 'warehouse' ? 'selected' : '' }}>
                         Gudang — Pemesanan & Penerimaan
-                    </option>
+                    </option> -->
                 </select>
                 @error('role')
                 <p class="mt-1 text-xs text-red-500">{{ $message }}</p>

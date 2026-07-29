@@ -18,14 +18,7 @@ class Category extends Model
 
     // ==================== SCOPES ====================
 
-    /**
-     * Kategori bertipe 'product'.
-     *
-     * Sejak kategori supplier digabung ke kategori produk (lihat migration
-     * 2026_07_14_000001_merge_supplier_categories_into_product), scope ini
-     * sekarang dipakai BERSAMA oleh produk maupun supplier — bukan cuma
-     * produk saja seperti sebelumnya.
-     */
+
     public function scopeProduct($query)
     {
         return $query->where('type', 'product');

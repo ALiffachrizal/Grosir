@@ -15,25 +15,37 @@ class SupplierSeeder extends Seeder
                 'kode_supplier' => 'SPL001',
                 'name'          => 'PT Sumber Pangan Jaya',
                 'phone'         => '081234567801',
-                'category_code' => 'SUP001',
+                'category_code' => 'SBK001', // SEMBAKO
             ],
             [
                 'kode_supplier' => 'SPL002',
                 'name'          => 'CV Snack Nusantara',
                 'phone'         => '081234567802',
-                'category_code' => 'SUP002',
+                'category_code' => 'JJN002', // JAJANAN / SNACK
             ],
             [
                 'kode_supplier' => 'SPL003',
                 'name'          => 'CV Bersih Sejahtera',
                 'phone'         => '081234567803',
-                'category_code' => 'SUP003',
+                'category_code' => 'RMH003', // KEBUTUHAN RUMAH TANGGA
             ],
             [
                 'kode_supplier' => 'SPL004',
                 'name'          => 'PT Minuman Segar Indonesia',
                 'phone'         => '081234567804',
-                'category_code' => 'SUP004',
+                'category_code' => 'MNM004', // MINUMAN
+            ],
+            [
+                'kode_supplier' => 'SPL005',
+                'name'          => 'UD Bumbu Nusantara',
+                'phone'         => '081234567805',
+                'category_code' => 'BMD005', // BUMBU DAPUR
+            ],
+            [
+                'kode_supplier' => 'SPL006',
+                'name'          => 'PT Sinar Perawatan Indonesia',
+                'phone'         => '081234567806',
+                'category_code' => 'PRT006', // PERAWATAN TUBUH
             ],
         ];
 
@@ -55,6 +67,6 @@ class SupplierSeeder extends Seeder
             );
         }
 
-        $this->command->info('✅ SupplierSeeder: 4 supplier berhasil dibuat.');
+        $this->command->info('✅ SupplierSeeder: 6 supplier berhasil dibuat.');
     }
 }

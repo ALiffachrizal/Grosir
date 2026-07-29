@@ -73,14 +73,11 @@ class User extends Authenticatable
         return match($this->role) {
             'admin'     => 'Admin',
             'cashier'   => 'Kasir',
-            'warehouse' => 'Gudang',
+            // 'warehouse' => 'Gudang',
             default     => ucfirst($this->role),
         };
     }
 
-    /**
-     * Warna badge role untuk Tailwind CSS
-     */
     public function getRoleColorAttribute(): string
     {
         return match($this->role) {

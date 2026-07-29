@@ -31,6 +31,7 @@ Route::middleware(['auth'])->group(function () {
         // Master data
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
         Route::resource('suppliers', SupplierController::class);
         Route::resource('products', ProductController::class);
@@ -50,6 +51,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/receiving', [ReceivingController::class, 'index'])->name('receiving.index');
         Route::get('/receiving/{purchaseOrder}', [ReceivingController::class, 'show'])->name('receiving.show');
         Route::post('/receiving/{purchaseOrder}/confirm', [ReceivingController::class, 'confirm'])->name('receiving.confirm');
+        Route::post('/receiving/{purchaseOrder}/cancel', [ReceivingController::class, 'cancel'])->name('receiving.cancel');
 
         // Stock log & laporan stok
         Route::get('/stock-logs', [StockLogController::class, 'index'])->name('stock-logs.index');

@@ -45,10 +45,10 @@
                             {{ old('role', $user->role) === 'cashier' ? 'selected' : '' }}>
                         Kasir — Penjualan & Refund
                     </option>
-                    <option value="warehouse"
+                    <!-- <option value="warehouse"
                             {{ old('role', $user->role) === 'warehouse' ? 'selected' : '' }}>
                         Gudang — Pemesanan & Penerimaan
-                    </option>
+                    </option> -->
                 </select>
                 @error('role')
                 <p class="mt-1 text-xs text-red-500">{{ $message }}</p>

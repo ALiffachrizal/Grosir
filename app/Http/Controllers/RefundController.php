@@ -76,16 +76,7 @@ class RefundController extends Controller
             'refunds',
         ])->findOrFail($request->sale_id);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Gabungkan detail berdasarkan kode produk
-        |--------------------------------------------------------------------------
-        |
-        | Satu produk dapat muncul beberapa kali pada sale_details, misalnya
-        | dibeli sebagai satuan dan package. Karena tabel refund menyimpan
-        | kode_produk, jumlah pembeliannya harus digabung terlebih dahulu.
-        |
-        */
+        
         $refundableItems = $sale->details
             ->groupBy('kode_produk')
             ->map(function ($details, $kodeProduk) use ($sale) {
@@ -207,15 +198,7 @@ class RefundController extends Controller
                 'Jumlah refund minimal satu unit.',
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Rapikan item refund
-        |--------------------------------------------------------------------------
-        |
-        | Semua quantity diubah menjadi integer dan diurutkan berdasarkan
-        | kode produk agar proses penguncian data lebih konsisten.
-        |
-        */
+        
         $items = collect($validated['items'])
             ->map(function (array $item) {
                 return [
@@ -226,25 +209,9 @@ class RefundController extends Controller
             ->sortBy('kode_produk')
             ->values();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Proses refund dalam database transaction
-        |--------------------------------------------------------------------------
-        |
-        | Jika salah satu proses gagal, refund, penambahan stok, dan stock log
-        | akan dibatalkan seluruhnya.
-        |
-        */
+    
         DB::transaction(function () use ($validated, $items) {
-            /*
-            |--------------------------------------------------------------------------
-            | Kunci transaksi penjualan
-            |--------------------------------------------------------------------------
-            |
-            | Penguncian mencegah dua refund dari transaksi yang sama diproses
-            | bersamaan dan menyebabkan jumlah refund melebihi pembelian.
-            |
-            */
+            
             $sale = Sale::query()
                 ->lockForUpdate()
                 ->findOrFail($validated['sale_id']);
@@ -253,20 +220,7 @@ class RefundController extends Controller
                 $kodeProduk = $item['kode_produk'];
                 $requestedQuantity = $item['quantity'];
 
-                /*
-                |--------------------------------------------------------------------------
-                | Ambil harga jual saat transaksi asli
-                |--------------------------------------------------------------------------
-                |
-                | Diambil dari sale_details.unit_price (harga saat penjualan
-                | terjadi), lalu disimpan langsung ke kolom refunds.unit_price
-                | supaya nilai historis ini terkunci dan tidak lagi bergantung
-                | pada sale_details di masa depan.
-                |
-                | Query mengambil satu baris saja karena satu produk yang sama
-                | pada satu transaksi selalu terjual dengan harga yang sama.
-                |
-                */
+
                 $saleDetail = SaleDetail::query()
                     ->where('sale_id', $sale->id)
                     ->where('kode_produk', $kodeProduk)
@@ -280,24 +234,14 @@ class RefundController extends Controller
                     ]);
                 }
 
-                /*
-                |--------------------------------------------------------------------------
-                | Hitung total pembelian produk
-                |--------------------------------------------------------------------------
-                |
-                | Menggunakan sum agar seluruh sale_details dengan kode produk
-                | yang sama ikut dihitung.
-                |
-                */
+                
                 $purchasedQuantity = (int) SaleDetail::query()
                     ->where('sale_id', $sale->id)
                     ->where('kode_produk', $kodeProduk)
                     ->sum('quantity');
 
                 /*
-                |--------------------------------------------------------------------------
-                | Hitung jumlah yang sudah direfund
-                |--------------------------------------------------------------------------
+                 Hitung jumlah yang sudah direfund
                 */
                 $alreadyRefunded = (int) Refund::query()
                     ->where('sale_id', $sale->id)
@@ -310,9 +254,7 @@ class RefundController extends Controller
                 );
 
                 /*
-                |--------------------------------------------------------------------------
-                | Cegah refund melebihi pembelian
-                |--------------------------------------------------------------------------
+                 Cegah refund melebihi pembelian
                 */
                 if ($requestedQuantity > $maxRefundable) {
                     throw ValidationException::withMessages([
@@ -324,9 +266,7 @@ class RefundController extends Controller
                 }
 
                 /*
-                |--------------------------------------------------------------------------
                 | Kunci produk sebelum menambah stok
-                |--------------------------------------------------------------------------
                 */
                 $product = Product::query()
                     ->where('kode_produk', $kodeProduk)
@@ -342,9 +282,7 @@ class RefundController extends Controller
                 }
 
                 /*
-                |--------------------------------------------------------------------------
                 | Simpan refund (termasuk unit_price historis)
-                |--------------------------------------------------------------------------
                 */
                 $refund = Refund::create([
                     'sale_id' => $sale->id,
@@ -356,9 +294,7 @@ class RefundController extends Controller
                 ]);
 
                 /*
-                |--------------------------------------------------------------------------
                 | Kembalikan stok produk
-                |--------------------------------------------------------------------------
                 */
                 $product->increment(
                     'stock',
@@ -366,9 +302,7 @@ class RefundController extends Controller
                 );
 
                 /*
-                |--------------------------------------------------------------------------
-                | Simpan riwayat perubahan stok
-                |--------------------------------------------------------------------------
+                 Simpan riwayat perubahan stok
                 */
                 StockLog::create([
                     'kode_produk' => $kodeProduk,

@@ -75,7 +75,7 @@
                     </label>
                     <input type="number" name="items_per_package"
                            value="{{ old('items_per_package', $product->items_per_package) }}"
-                           min="1"
+                           min="1" onfocus="this.select()"
                            class="w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
                                   {{ $errors->has('items_per_package') ? 'border-red-400' : 'border-gray-300' }}">
                     @error('items_per_package')
@@ -90,7 +90,7 @@
                     </label>
                     <input type="number" name="items_per_bundle"
                            value="{{ old('items_per_bundle', $product->items_per_bundle) }}"
-                           min="1"
+                           min="1" onfocus="this.select()"
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
 
@@ -101,7 +101,7 @@
                     </label>
                     <input type="number" name="minimum_stock"
                            value="{{ old('minimum_stock', $product->minimum_stock) }}"
-                           min="0"
+                           min="0" onfocus="this.select()"
                            class="w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
                                   {{ $errors->has('minimum_stock') ? 'border-red-400' : 'border-gray-300' }}">
                     @error('minimum_stock')
@@ -131,7 +131,7 @@
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
                         <input type="number" name="purchase_price"
                                value="{{ old('purchase_price', $product->purchase_price) }}"
-                               min="0" step="100"
+                               min="0" step="100" onfocus="this.select()"
                                class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
                                       {{ $errors->has('purchase_price') ? 'border-red-400' : 'border-gray-300' }}">
                     </div>
@@ -149,7 +149,7 @@
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
                         <input type="number" name="selling_price"
                                value="{{ old('selling_price', $product->selling_price) }}"
-                               min="0" step="100"
+                               min="0" step="100" onfocus="this.select()"
                                class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
                                       {{ $errors->has('selling_price') ? 'border-red-400' : 'border-gray-300' }}">
                     </div>
