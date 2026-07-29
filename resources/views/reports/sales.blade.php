@@ -24,10 +24,6 @@
         $exportQuery['date_from'] = $dateFrom->format('Y-m-d');
         $exportQuery['date_to'] = $dateTo->format('Y-m-d');
     }
-
-    $refundPercentage = $totalSales > 0
-        ? ($totalRefundNominal / $totalSales) * 100
-        : 0;
 @endphp
 
 <div class="space-y-6">
@@ -249,7 +245,7 @@
     {{-- ========================================================= --}}
     {{-- RINGKASAN LAPORAN --}}
     {{-- ========================================================= --}}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
         {{-- Penjualan bersih --}}
         <div class="rounded-2xl bg-gray-900 p-6 text-white shadow-sm sm:col-span-2 xl:col-span-2">
@@ -358,36 +354,6 @@
                 <p class="text-xs text-gray-500">
                     {{ $totalRefunds }} transaksi refund ·
                     {{ $totalRefundQty }} unit
-                </p>
-            </div>
-        </div>
-
-        {{-- Persentase refund --}}
-        <div class="rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">
-                        Persentase Refund
-                    </p>
-
-                    <p class="mt-2 text-2xl font-bold text-purple-600">
-                        {{ number_format(
-                            $refundPercentage,
-                            1,
-                            ',',
-                            '.'
-                        ) }}%
-                    </p>
-                </div>
-
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-xl">
-                    📊
-                </div>
-            </div>
-
-            <div class="mt-5 border-t border-gray-100 pt-4">
-                <p class="text-xs text-gray-500">
-                    Dari total penjualan kotor
                 </p>
             </div>
         </div>

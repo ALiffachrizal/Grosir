@@ -11,14 +11,6 @@
         <form action="{{ route('products.store') }}" method="POST" class="space-y-5">
             @csrf
 
-            {{-- Info kode otomatis --}}
-            <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-700">
-                <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                </svg>
-                Kode produk akan dibuat otomatis oleh sistem (format: PRD-0001, PRD-0002, dst.)
-            </div>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
                 {{-- Nama Produk --}}
@@ -34,6 +26,19 @@
                     <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
                 </div>
+
+                {{--
+                    Field "Kode Produk" SENGAJA DIHAPUS dari sini.
+
+                    Sebelumnya ada input manual untuk kode_produk di sini, padahal
+                    ProductController::store() sama sekali tidak membaca
+                    $request->kode_produk — kode produk selalu di-generate
+                    otomatis oleh Product::boot() (lihat generateKodeProduk()).
+
+                    Kalau field ini tetap ada, admin akan mengira harus mengisi
+                    kode sendiri padahal isiannya dibuang begitu saja oleh
+                    controller — membingungkan tanpa manfaat apa pun.
+                --}}
 
                 {{-- Kategori --}}
                 <div>
@@ -81,7 +86,7 @@
                         Isi per Package <span class="text-red-500">*</span>
                     </label>
                     <input type="number" name="items_per_package" value="{{ old('items_per_package', 1) }}"
-                           min="1"
+                           min="1" onfocus="this.select()"
                            class="w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
                                   {{ $errors->has('items_per_package') ? 'border-red-400' : 'border-gray-300' }}"
                            placeholder="Contoh: 40">
@@ -97,7 +102,7 @@
                         Isi per Bundle/Renceng
                     </label>
                     <input type="number" name="items_per_bundle" value="{{ old('items_per_bundle', 1) }}"
-                           min="1"
+                           min="1" onfocus="this.select()"
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                            placeholder="Contoh: 10">
                     <p class="text-xs text-gray-400 mt-1">Isi 1 jika tidak ada satuan bundle</p>
@@ -109,7 +114,7 @@
                         Stok Awal
                     </label>
                     <input type="number" name="stock" value="{{ old('stock', 0) }}"
-                           min="0"
+                           min="0" onfocus="this.select()"
                            class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                            placeholder="0">
                     <p class="text-xs text-gray-400 mt-1">💡 Isi jika produk sudah punya stok awal</p>
@@ -121,7 +126,7 @@
                         Stok Minimum <span class="text-red-500">*</span>
                     </label>
                     <input type="number" name="minimum_stock" value="{{ old('minimum_stock', 0) }}"
-                           min="0"
+                           min="0" onfocus="this.select()"
                            class="w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
                                   {{ $errors->has('minimum_stock') ? 'border-red-400' : 'border-gray-300' }}"
                            placeholder="Contoh: 10">
@@ -139,7 +144,7 @@
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
                         <input type="number" name="purchase_price" value="{{ old('purchase_price') }}"
-                               min="0" step="100"
+                               min="0" step="100" onfocus="this.select()"
                                class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
                                       {{ $errors->has('purchase_price') ? 'border-red-400' : 'border-gray-300' }}"
                                placeholder="0">
@@ -157,7 +162,7 @@
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">Rp</span>
                         <input type="number" name="selling_price" value="{{ old('selling_price') }}"
-                               min="0" step="100"
+                               min="0" step="100" onfocus="this.select()"
                                class="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
                                       {{ $errors->has('selling_price') ? 'border-red-400' : 'border-gray-300' }}"
                                placeholder="0">

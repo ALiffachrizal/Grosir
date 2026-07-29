@@ -30,22 +30,22 @@ class UserSeeder extends Seeder
             'role'     => 'cashier', // WAJIB sesuai ENUM
         ]);
 
-        // Warehouse (Opsional, sekalian)
-        User::create([
-            'username' => 'gudang',
-            'password' => Hash::make('gudang123'),
-            'role'     => 'warehouse',
-        ]);
+        //  Warehouse (Opsional, sekalian)
+        // User::create([
+        //     'username' => 'gudang',
+        //     'password' => Hash::make('gudang123'),
+        //     'role'     => 'warehouse',
+        // ]);
 
         // Output ke console
-        $this->command->info('✅ UserSeeder: admin, cashier, warehouse berhasil dibuat.');
+        $this->command->info('✅ UserSeeder: admin, cashier, berhasil dibuat.');
 
         $this->command->table(
             ['Username', 'Password', 'Role'],
             [
                 ['admin', 'admin123', 'admin'],
                 ['kasir', 'kasir123', 'cashier'],
-                ['gudang', 'gudang123', 'warehouse'],
+                // ['gudang', 'gudang123', 'warehouse'],
             ]
         );
     }

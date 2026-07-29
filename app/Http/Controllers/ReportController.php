@@ -320,15 +320,7 @@ class ReportController extends Controller
                 ->refunds
                 ->sum('quantity');
 
-            /*
-            |--------------------------------------------------------------------------
-            | Simpan hasil per transaksi
-            |--------------------------------------------------------------------------
-            |
-            | Nilai ini nanti dapat langsung digunakan oleh view web dan PDF,
-            | sehingga view tidak perlu menghitung refund berulang kali.
-            |
-            */
+            
             $sale->setAttribute(
                 'refund_nominal',
                 $saleRefundNominal
@@ -351,15 +343,7 @@ class ReportController extends Controller
             $totalRefundQty +=
                 $saleRefundQuantity;
 
-            /*
-            |--------------------------------------------------------------------------
-            | Hitung transaksi refund secara unik
-            |--------------------------------------------------------------------------
-            |
-            | Satu transaksi yang memiliki beberapa record refund tetap
-            | dihitung sebagai satu transaksi refund.
-            |
-            */
+            
             if ($sale->refunds->isNotEmpty()) {
                 $totalRefunds++;
             }
@@ -403,20 +387,7 @@ class ReportController extends Controller
         $refundNominal = 0;
 
         foreach ($sale->refunds as $refund) {
-            /*
-            |--------------------------------------------------------------------------
-            | Gunakan unit_price yang tersimpan di baris refund
-            |--------------------------------------------------------------------------
-            |
-            | Sejak refunds.unit_price ditambahkan, harga historis sudah
-            | terkunci saat refund dibuat dan tidak lagi perlu dicari ulang
-            | ke sale_details setiap kali laporan dihitung.
-            |
-            | Fallback ke sale_details HANYA untuk baris refund lama yang
-            | dibuat sebelum kolom ini ada dan belum sempat di-backfill.
-            | Baris baru selalu sudah punya unit_price.
-            |
-            */
+        
             $unitPrice = $refund->unit_price;
 
             if ($unitPrice === null) {

@@ -314,12 +314,7 @@
             @yield('content')
         </main>
 
-        {{-- Footer --}}
-        <footer class="bg-white border-t border-gray-200 px-6 py-2 shrink-0">
-            <p class="text-center text-xs text-gray-400">
-                &copy; {{ date('Y') }} Toko Grosir IJAD — Sistem Informasi Manajemen Toko
-            </p>
-        </footer>
+    
 
     </div>
 

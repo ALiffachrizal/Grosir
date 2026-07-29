@@ -15,14 +15,7 @@ use Throwable;
 
 class SaleController extends Controller
 {
-    /**
-     * Jumlah produk yang dimuat saat halaman POS pertama kali dibuka.
-     *
-     * Sebelumnya SEMUA produk (stock > 0) di-dump ke JavaScript sekaligus
-     * lewat @js($products). Untuk katalog besar ini berat di initial load.
-     * Sekarang hanya sebagian yang dimuat di awal; sisanya dicari lewat
-     * endpoint AJAX searchProducts() di bawah, sesuai ketikan kasir.
-     */
+    
     private const INITIAL_PRODUCTS_LIMIT = 40;
 
     /**
@@ -38,12 +31,7 @@ class SaleController extends Controller
         return redirect()->route('sales.create');
     }
 
-    /**
-     * Menampilkan halaman Point of Sale.
-     *
-     * Hanya memuat sebagian produk di awal (lihat INITIAL_PRODUCTS_LIMIT).
-     * Pencarian produk lain dilakukan lewat endpoint AJAX searchProducts().
-     */
+    
     public function create()
     {
         $products = Product::with('category')
@@ -62,17 +50,7 @@ class SaleController extends Controller
         ));
     }
 
-    /**
-     * Endpoint AJAX pencarian produk untuk halaman POS.
-     *
-     * Dipanggil dari JavaScript (Alpine.js) setiap kali kasir mengetik di
-     * kolom pencarian atau memilih kategori, dengan debounce di sisi client
-     * agar tidak membanjiri server dengan request di setiap ketikan.
-     *
-     * Query params:
-     *   - q: kata kunci nama produk (opsional)
-     *   - category: nama kategori (opsional)
-     */
+    
     public function searchProducts(Request $request)
     {
         $validated = $request->validate([
@@ -100,9 +78,7 @@ class SaleController extends Controller
         return response()->json($products);
     }
 
-    /**
-     * Menyimpan transaksi penjualan.
-     */
+    
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -129,11 +105,7 @@ class SaleController extends Controller
                 'min:1',
             ],
 
-            /*
-             * Field unit_price tetap divalidasi agar cocok dengan form POS
-             * yang sekarang. Namun nilai ini tidak digunakan dalam perhitungan.
-             * Harga resmi akan diambil kembali dari tabel products.
-             */
+            
             'items.*.unit_price' => [
                 'nullable',
                 'numeric',
@@ -184,15 +156,7 @@ class SaleController extends Controller
                 'Metode pembayaran tidak valid.',
         ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Rapikan data item
-        |--------------------------------------------------------------------------
-        |
-        | Harga yang dikirim browser tidak dimasukkan ke data yang diproses.
-        | Controller hanya menggunakan kode produk, quantity, dan description.
-        |
-        */
+        
         $items = collect($validated['items'])
             ->map(function (array $item) {
                 return [
@@ -207,18 +171,7 @@ class SaleController extends Controller
             })
             ->values();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Hitung total kebutuhan stok per produk
-        |--------------------------------------------------------------------------
-        |
-        | Produk yang sama dapat berada pada beberapa baris keranjang karena
-        | dipilih sebagai satuan, package, atau bundle.
-        |
-        | Semua quantity produk yang sama dijumlahkan terlebih dahulu sebelum
-        | dibandingkan dengan stok yang tersedia.
-        |
-        */
+        
         $requiredStocks = $items
             ->groupBy('kode_produk')
             ->map(function ($productItems) {
@@ -236,15 +189,7 @@ class SaleController extends Controller
                     ->keys()
                     ->values();
 
-                /*
-                |--------------------------------------------------------------------------
-                | Kunci data produk
-                |--------------------------------------------------------------------------
-                |
-                | lockForUpdate mencegah dua transaksi menggunakan stok yang
-                | sama secara bersamaan sebelum transaksi pertama selesai.
-                |
-                */
+                
                 $products = Product::query()
                     ->whereIn('kode_produk', $productCodes)
                     ->orderBy('kode_produk')
@@ -252,11 +197,7 @@ class SaleController extends Controller
                     ->get()
                     ->keyBy('kode_produk');
 
-                /*
-                |--------------------------------------------------------------------------
-                | Periksa total stok per produk
-                |--------------------------------------------------------------------------
-                */
+                
                 foreach ($requiredStocks as $kodeProduk => $requiredQuantity) {
                     $product = $products->get($kodeProduk);
 
@@ -285,15 +226,7 @@ class SaleController extends Controller
                     }
                 }
 
-                /*
-                |--------------------------------------------------------------------------
-                | Hitung total menggunakan harga database
-                |--------------------------------------------------------------------------
-                |
-                | Nilai unit_price yang dikirim browser tidak digunakan.
-                | Harga diambil langsung dari products.selling_price.
-                |
-                */
+               
                 $totalPrice = $items->sum(
                     function (array $item) use ($products) {
                         $product = $products->get(
@@ -335,9 +268,7 @@ class SaleController extends Controller
                         $item['kode_produk']
                     );
 
-                    /*
-                     * Harga jual resmi selalu berasal dari database.
-                     */
+                    
                     $unitPrice = (float) $product->selling_price;
 
                     SaleDetail::create([
@@ -356,13 +287,7 @@ class SaleController extends Controller
                             $item['description'] ?: null,
                     ]);
 
-                    /*
-                     * Quantity yang dikirim POS sudah dalam jumlah satuan dasar.
-                     *
-                     * Contoh:
-                     * 2 package, isi package 12 PCS
-                     * quantity yang dikirim adalah 24 PCS.
-                     */
+                   
                     $product->decrement(
                         'stock',
                         $item['quantity']
@@ -405,10 +330,7 @@ class SaleController extends Controller
                     $exception->getMessage()
                 );
         } catch (Throwable $exception) {
-            /*
-             * Kesalahan database atau kesalahan tak terduga tetap dicatat
-             * pada log Laravel.
-             */
+            
             report($exception);
 
             return back()

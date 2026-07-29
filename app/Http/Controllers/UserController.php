@@ -171,14 +171,7 @@ class UserController extends Controller
             'role' => $validated['role'],
         ];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Password bersifat opsional saat edit
-        |--------------------------------------------------------------------------
-        |
-        | Jika password tidak diisi, password lama tetap digunakan.
-        |
-        */
+        
         if ($request->filled('password')) {
             $data['password'] = Hash::make(
                 $validated['password']
@@ -214,15 +207,7 @@ class UserController extends Controller
                 );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Hitung seluruh riwayat pengguna
-        |--------------------------------------------------------------------------
-        |
-        | Foreign key pada tabel transaksi menggunakan restrictOnDelete().
-        | Karena itu akun yang memiliki riwayat tidak boleh dihapus.
-        |
-        */
+        
         $purchaseOrderCount = $user->purchaseOrders()->count();
         $saleCount = $user->sales()->count();
         $refundCount = $user->refunds()->count();
@@ -265,15 +250,7 @@ class UserController extends Controller
 
         $username = $user->username;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Hapus akun
-        |--------------------------------------------------------------------------
-        |
-        | QueryException tetap ditangani untuk mencegah halaman error jika
-        | ternyata masih terdapat relasi database lain.
-        |
-        */
+        
         try {
             $user->delete();
         } catch (QueryException $exception) {
