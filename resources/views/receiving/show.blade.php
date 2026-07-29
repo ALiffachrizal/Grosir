@@ -14,7 +14,27 @@
     };
 @endphp
 
-<div class="max-w-5xl mx-auto space-y-4" x-data="{ showConfirmModal: false, showCancelModal: false }">
+<div
+    class="max-w-5xl mx-auto space-y-4"
+    x-data="{
+        showConfirmModal: false,
+        showCancelModal: false,
+        orderedQty: @json($purchaseOrder->details->pluck('quantity')->values()),
+        receivedQty: @json($purchaseOrder->details->pluck('quantity')->values()),
+        baseStock: @json($purchaseOrder->details->pluck('product.stock')->values()),
+
+        resetQty() {
+            this.receivedQty = [...this.orderedQty];
+        },
+
+        totalDiterima() {
+            return this.receivedQty.reduce(
+                (sum, v) => sum + (Number(v) || 0),
+                0
+            );
+        }
+    }"
+>
 
     {{-- ========================================================= --}}
     {{-- INFORMASI PURCHASE ORDER --}}
@@ -94,166 +114,247 @@
     </div>
 
     {{-- ========================================================= --}}
-    {{-- DAFTAR BARANG --}}
+    {{-- PESAN VALIDASI (kalau ada error dari server) --}}
     {{-- ========================================================= --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-
-        {{-- Header --}}
-        <div class="p-5 border-b border-gray-100">
-
-            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <span>📦</span>
-                Daftar Barang yang Diterima
-            </h3>
-
-            <p class="text-sm text-gray-500 mt-1">
-                Pastikan barang yang diterima sudah sesuai sebelum melakukan konfirmasi.
-            </p>
+    @if($errors->any())
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div class="flex items-start gap-3">
+                <div class="w-9 h-9 shrink-0 rounded-lg bg-red-100 flex items-center justify-center">
+                    ⚠️
+                </div>
+                <div>
+                    <h4 class="font-bold text-red-800 text-sm">
+                        Gagal Memproses
+                    </h4>
+                    <ul class="text-sm text-red-700 mt-1 list-disc list-inside">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
         </div>
+    @endif
 
-        {{-- Tabel --}}
-        <div class="overflow-x-auto">
+    {{-- ========================================================= --}}
+    {{-- DAFTAR BARANG — sekaligus FORM konfirmasi --}}
+    {{-- ========================================================= --}}
+    <form
+        x-ref="confirmForm"
+        action="{{ route('receiving.confirm', $purchaseOrder) }}"
+        method="POST"
+    >
+        @csrf
 
-            <table class="w-full text-sm">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
 
-                <thead class="bg-gray-800 text-white">
-                    <tr>
-                        <th class="px-4 py-3 text-left font-semibold">
-                            #
-                        </th>
+            {{-- Header --}}
+            <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
-                        <th class="px-4 py-3 text-left font-semibold">
-                            Produk
-                        </th>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <span>📦</span>
+                        Daftar Barang yang Diterima
+                    </h3>
 
-                        <th class="px-4 py-3 text-left font-semibold">
-                            Kategori
-                        </th>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Sesuaikan jumlah kalau barang yang datang tidak sesuai pesanan,
+                        lalu konfirmasi penerimaan.
+                    </p>
+                </div>
 
-                        <th class="px-4 py-3 text-center font-semibold">
-                            Jumlah Diterima
-                        </th>
+                <button
+                    type="button"
+                    @click="resetQty()"
+                    class="self-start sm:self-auto text-xs font-semibold text-blue-600
+                           hover:text-blue-700 hover:underline whitespace-nowrap"
+                >
+                    ↺ Reset ke jumlah pesanan
+                </button>
+            </div>
 
-                        <th class="px-4 py-3 text-center font-semibold">
-                            Stok Sekarang
-                        </th>
+            {{-- Tabel --}}
+            <div class="overflow-x-auto">
 
-                        <th class="px-4 py-3 text-center font-semibold">
-                            Stok Setelah
-                        </th>
-                    </tr>
-                </thead>
+                <table class="w-full text-sm">
 
-                <tbody class="divide-y divide-gray-100">
-
-                    @forelse($purchaseOrder->details as $index => $detail)
-
-                        <tr class="hover:bg-gray-50 transition">
-
-                            {{-- Nomor --}}
-                            <td class="px-4 py-3 text-gray-500">
-                                {{ $index + 1 }}
-                            </td>
-
-                            {{-- Produk --}}
-                            <td class="px-4 py-3">
-
-                                <p class="font-semibold text-gray-800">
-                                    {{ $detail->product->name }}
-                                </p>
-
-                                <p class="text-xs text-gray-400 mt-0.5">
-                                    Kode: {{ $detail->product->kode_produk }}
-                                </p>
-                            </td>
-
-                            {{-- Kategori --}}
-                            <td class="px-4 py-3">
-
-                                <span
-                                    class="inline-flex px-2.5 py-1 rounded-full
-                                           text-xs font-medium bg-blue-100 text-blue-700"
-                                >
-                                    {{ $detail->product->category->name ?? '-' }}
-                                </span>
-                            </td>
-
-                            {{-- Jumlah Diterima --}}
-                            <td class="px-4 py-3 text-center whitespace-nowrap">
-
-                                <span class="text-green-600 font-bold text-base">
-                                    +{{ $detail->quantity }}
-                                </span>
-
-                                <span class="text-gray-400 text-xs ml-0.5">
-                                    {{ $detail->product->base_unit }}
-                                </span>
-                            </td>
-
-                            {{-- Stok Sekarang --}}
-                            <td class="px-4 py-3 text-center whitespace-nowrap">
-
-                                <span class="text-gray-700 font-semibold text-base">
-                                    {{ $detail->product->stock }}
-                                </span>
-
-                                <span class="text-gray-400 text-xs ml-0.5">
-                                    {{ $detail->product->base_unit }}
-                                </span>
-                            </td>
-
-                            {{-- Stok Setelah --}}
-                            <td class="px-4 py-3 text-center whitespace-nowrap">
-
-                                <span class="text-blue-600 font-bold text-lg">
-                                    {{ $detail->product->stock + $detail->quantity }}
-                                </span>
-
-                                <span class="text-gray-400 text-xs ml-0.5">
-                                    {{ $detail->product->base_unit }}
-                                </span>
-                            </td>
-                        </tr>
-
-                    @empty
-
+                    <thead class="bg-gray-800 text-white">
                         <tr>
-                            <td colspan="6" class="text-center py-10 text-gray-400">
+                            <th class="px-4 py-3 text-left font-semibold">
+                                #
+                            </th>
 
-                                <div class="text-4xl mb-2">
-                                    📦
-                                </div>
+                            <th class="px-4 py-3 text-left font-semibold">
+                                Produk
+                            </th>
 
-                                <p>
-                                    Tidak ada barang dalam purchase order ini.
-                                </p>
-                            </td>
+                            <th class="px-4 py-3 text-left font-semibold">
+                                Kategori
+                            </th>
+
+                            <th class="px-4 py-3 text-center font-semibold">
+                                Dipesan
+                            </th>
+
+                            <th class="px-4 py-3 text-center font-semibold">
+                                Jumlah Diterima
+                            </th>
+
+                            <th class="px-4 py-3 text-center font-semibold">
+                                Stok Sekarang
+                            </th>
+
+                            <th class="px-4 py-3 text-center font-semibold">
+                                Stok Setelah
+                            </th>
                         </tr>
+                    </thead>
 
-                    @endforelse
+                    <tbody class="divide-y divide-gray-100">
 
-                </tbody>
-            </table>
+                        @forelse($purchaseOrder->details as $index => $detail)
+
+                            <tr class="hover:bg-gray-50 transition">
+
+                                {{-- Nomor --}}
+                                <td class="px-4 py-3 text-gray-500">
+                                    {{ $index + 1 }}
+                                </td>
+
+                                {{-- Produk --}}
+                                <td class="px-4 py-3">
+
+                                    <p class="font-semibold text-gray-800">
+                                        {{ $detail->product->name }}
+                                    </p>
+
+                                    <p class="text-xs text-gray-400 mt-0.5">
+                                        Kode: {{ $detail->product->kode_produk }}
+                                    </p>
+
+                                    <input type="hidden"
+                                           name="items[{{ $index }}][kode_produk]"
+                                           value="{{ $detail->kode_produk }}">
+                                </td>
+
+                                {{-- Kategori --}}
+                                <td class="px-4 py-3">
+
+                                    <span
+                                        class="inline-flex px-2.5 py-1 rounded-full
+                                               text-xs font-medium bg-blue-100 text-blue-700"
+                                    >
+                                        {{ $detail->product->category->name ?? '-' }}
+                                    </span>
+                                </td>
+
+                                {{-- Dipesan --}}
+                                <td class="px-4 py-3 text-center whitespace-nowrap">
+                                    <span class="text-gray-500 font-medium">
+                                        {{ $detail->quantity }}
+                                    </span>
+                                    <span class="text-gray-400 text-xs ml-0.5">
+                                        {{ $detail->product->base_unit }}
+                                    </span>
+                                </td>
+
+                                {{-- Jumlah Diterima (BISA DIEDIT) --}}
+                                <td class="px-4 py-3 text-center">
+
+                                    <div class="inline-flex flex-col items-center">
+                                        <div class="inline-flex items-center gap-1.5">
+                                            <input
+                                                type="number"
+                                                name="items[{{ $index }}][quantity_received]"
+                                                x-model.number="receivedQty[{{ $index }}]"
+                                                min="0"
+                                                max="{{ $detail->quantity }}"
+                                                onfocus="this.select()"
+                                                class="w-20 text-center border border-gray-300 rounded-lg
+                                                       py-1.5 text-sm font-bold text-green-700
+                                                       focus:outline-none focus:ring-2 focus:ring-green-500"
+                                            >
+                                            <span class="text-gray-400 text-xs">
+                                                {{ $detail->product->base_unit }}
+                                            </span>
+                                        </div>
+
+                                        <p
+                                            x-show="Number(receivedQty[{{ $index }}]) < Number(orderedQty[{{ $index }}])"
+                                            x-cloak
+                                            class="text-[11px] text-amber-600 mt-1 font-medium"
+                                        >
+                                            ⚠️ Kurang
+                                            <span x-text="Number(orderedQty[{{ $index }}]) - Number(receivedQty[{{ $index }}] || 0)"></span>
+                                            {{ $detail->product->base_unit }}
+                                        </p>
+                                    </div>
+                                </td>
+
+                                {{-- Stok Sekarang --}}
+                                <td class="px-4 py-3 text-center whitespace-nowrap">
+
+                                    <span class="text-gray-700 font-semibold text-base">
+                                        {{ $detail->product->stock }}
+                                    </span>
+
+                                    <span class="text-gray-400 text-xs ml-0.5">
+                                        {{ $detail->product->base_unit }}
+                                    </span>
+                                </td>
+
+                                {{-- Stok Setelah (REAKTIF) --}}
+                                <td class="px-4 py-3 text-center whitespace-nowrap">
+
+                                    <span
+                                        class="text-blue-600 font-bold text-lg"
+                                        x-text="Number(baseStock[{{ $index }}]) + (Number(receivedQty[{{ $index }}]) || 0)"
+                                    ></span>
+
+                                    <span class="text-gray-400 text-xs ml-0.5">
+                                        {{ $detail->product->base_unit }}
+                                    </span>
+                                </td>
+                            </tr>
+
+                        @empty
+
+                            <tr>
+                                <td colspan="7" class="text-center py-10 text-gray-400">
+
+                                    <div class="text-4xl mb-2">
+                                        📦
+                                    </div>
+
+                                    <p>
+                                        Tidak ada barang dalam purchase order ini.
+                                    </p>
+                                </td>
+                            </tr>
+
+                        @endforelse
+
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
+    </form>
 
     {{-- ========================================================= --}}
     {{-- RINGKASAN --}}
     {{-- ========================================================= --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
-        {{-- Total Barang --}}
+        {{-- Total Barang Diterima (REAKTIF) --}}
         <div class="bg-green-50 border border-green-100 rounded-xl p-4">
 
             <p class="text-xs font-medium text-green-700">
-                Total Barang Diterima
+                Total Akan Diterima
             </p>
 
             <div class="flex items-end gap-1 mt-1">
 
-                <p class="text-xl font-bold text-green-700">
-                    {{ $purchaseOrder->details->sum('quantity') }}
-                </p>
+                <p class="text-xl font-bold text-green-700" x-text="totalDiterima()"></p>
 
                 <span class="text-xs text-green-600 mb-1">
                     unit
@@ -312,20 +413,20 @@
                 </h4>
 
                 <p class="text-sm text-yellow-700 leading-relaxed mt-1">
-                    Setelah dikonfirmasi, stok produk akan bertambah sesuai
-                    jumlah yang diterima dan status purchase order akan berubah
-                    menjadi
+                    Stok produk akan bertambah sesuai jumlah yang benar-benar
+                    diterima (bukan otomatis sama dengan jumlah pesanan), dan
+                    status purchase order akan berubah menjadi
 
                     <span class="font-semibold">
                         Diterima
                     </span>.
 
-                    Tindakan ini tidak dapat dibatalkan.
+                    Tindakan ini tidak dapat dibatalkan setelah dikonfirmasi.
                 </p>
 
                 <p class="text-sm text-yellow-700 leading-relaxed mt-2">
-                    Jika barang ternyata tidak jadi dikirim oleh supplier,
-                    gunakan tombol
+                    Jika barang ternyata tidak jadi dikirim sama sekali oleh
+                    supplier, gunakan tombol
 
                     <span class="font-semibold">
                         Batalkan PO
@@ -342,27 +443,17 @@
     {{-- ========================================================= --}}
     <div class="flex flex-col sm:flex-row gap-3 pb-2">
 
-        {{-- Form konfirmasi — tidak lagi submit langsung, tombolnya cuma buka modal --}}
-        <form
-            x-ref="confirmForm"
-            action="{{ route('receiving.confirm', $purchaseOrder) }}"
-            method="POST"
-            class="flex-1"
+        <button
+            type="button"
+            @click="showConfirmModal = true"
+            class="flex-1 bg-green-600 hover:bg-green-700
+                   text-white py-3 rounded-xl
+                   font-semibold text-sm shadow-sm transition"
         >
-            @csrf
+            ✅ Konfirmasi Penerimaan
+        </button>
 
-            <button
-                type="button"
-                @click="showConfirmModal = true"
-                class="w-full bg-green-600 hover:bg-green-700
-                       text-white py-3 rounded-xl
-                       font-semibold text-sm shadow-sm transition"
-            >
-                ✅ Konfirmasi Penerimaan
-            </button>
-        </form>
-
-        {{-- Form batal — sama, tombolnya cuma buka modal --}}
+        {{-- Form batal — terpisah, tidak butuh jumlah barang --}}
         <form
             x-ref="cancelForm"
             action="{{ route('receiving.cancel', $purchaseOrder) }}"
@@ -403,7 +494,6 @@
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         style="display: none;"
     >
-        {{-- Backdrop --}}
         <div
             x-show="showConfirmModal"
             x-transition:enter="transition ease-out duration-200"
@@ -416,7 +506,6 @@
             class="absolute inset-0 bg-gray-900/50"
         ></div>
 
-        {{-- Kartu modal --}}
         <div
             x-show="showConfirmModal"
             x-transition:enter="transition ease-out duration-200"
@@ -438,8 +527,9 @@
                 </h3>
 
                 <p class="text-sm text-gray-500 mt-2 leading-relaxed">
-                    Stok produk akan bertambah sesuai jumlah yang diterima.
-                    Tindakan ini tidak dapat dibatalkan.
+                    Stok produk akan bertambah sebanyak
+                    <span class="font-semibold text-gray-700" x-text="totalDiterima()"></span>
+                    unit sesuai jumlah yang diisi. Tindakan ini tidak dapat dibatalkan.
                 </p>
 
                 <div class="flex gap-3 w-full mt-6">
@@ -475,7 +565,6 @@
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         style="display: none;"
     >
-        {{-- Backdrop --}}
         <div
             x-show="showCancelModal"
             x-transition:enter="transition ease-out duration-200"
@@ -488,7 +577,6 @@
             class="absolute inset-0 bg-gray-900/50"
         ></div>
 
-        {{-- Kartu modal --}}
         <div
             x-show="showCancelModal"
             x-transition:enter="transition ease-out duration-200"
