@@ -69,6 +69,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
         Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
         Route::get('/sales/{sale}/receipt', [SaleController::class, 'receipt'])->name('sales.receipt');
+        Route::get('/sales/create/{draftSale}', [SaleController::class, 'create'])->name('sales.create.resume');
+        Route::post('/sales/draft', [SaleController::class, 'storeDraft'])->name('sales.draft.store');
+        Route::delete('/sales/draft/{draftSale}', [SaleController::class, 'destroyDraft'])->name('sales.draft.destroy');
 
         // Refund
         Route::get('/refunds', [RefundController::class, 'index'])->name('refunds.index');
