@@ -5,8 +5,69 @@
 
 @section('content')
 
-<div x-data="pos(@js($products), @js($categories))"
+<div x-data="pos(@js($products), @js($categories), @js($initialCart), {{ $resumingDraftId ?? 'null' }})"
      class="flex flex-col gap-4">
+
+    {{-- ===== BANNER: SEDANG MELANJUTKAN DRAFT ===== --}}
+    @if($resumingDraftId)
+        <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+            <p class="text-sm text-blue-700">
+                📝 Sedang melanjutkan transaksi tertunda — keranjang otomatis terisi dari draft ini.
+            </p>
+            <a href="{{ route('sales.create') }}"
+               class="text-xs font-semibold text-blue-600 hover:underline whitespace-nowrap">
+                Mulai baru
+            </a>
+        </div>
+    @endif
+
+    {{-- ===== DAFTAR TRANSAKSI TERTUNDA ===== --}}
+    @if($drafts->count() > 0)
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="text-lg">📝</span>
+                <h3 class="font-bold text-amber-800 text-sm">
+                    Transaksi Tertunda ({{ $drafts->count() }})
+                </h3>
+            </div>
+
+            <div class="flex gap-3 overflow-x-auto pb-1">
+                @foreach($drafts as $draft)
+                    <div class="bg-white border border-amber-200 rounded-xl p-3 min-w-[220px] shrink-0">
+
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-gray-800 truncate">
+                                    {{ $draft->note ?: 'Draft #' . $draft->id }}
+                                </p>
+                                <p class="text-[11px] text-gray-400 mt-0.5">
+                                    {{ $draft->user->username }} · {{ $draft->created_at->diffForHumans() }}
+                                </p>
+                            </div>
+
+                            <button type="button"
+                                    @click="confirmDeleteDraft('{{ route('sales.draft.destroy', $draft) }}', '{{ addslashes($draft->note ?: 'Draft #'.$draft->id) }}')"
+                                    class="w-5 h-5 rounded-full bg-red-100 hover:bg-red-200
+                                           text-red-500 flex items-center justify-center
+                                           text-xs transition shrink-0">
+                                ✕
+                            </button>
+                        </div>
+
+                        <p class="text-xs text-gray-500 mb-2">
+                            {{ $draft->details->count() }} item · {{ $draft->details->sum('quantity') }} unit
+                        </p>
+
+                        <a href="{{ route('sales.create.resume', $draft) }}"
+                           class="block text-center bg-amber-500 hover:bg-amber-600
+                                  text-white text-xs font-bold py-2 rounded-lg transition">
+                            Lanjutkan →
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     {{-- ===== PANEL UTAMA ===== --}}
     <div class="flex gap-4" style="height: calc(100vh - 140px)">
@@ -202,14 +263,30 @@
                     </div>
                 </div>
 
-                <button @click="checkout()"
-                        :disabled="cart.length === 0 || !paymentMethod"
-                        :class="cart.length === 0 || !paymentMethod
-                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 cursor-pointer'"
-                        class="w-full py-3.5 rounded-xl text-sm font-bold transition-all duration-200">
-                    Bayar Sekarang
-                </button>
+                {{--
+                    Dua tombol: "Simpan / Draft" TIDAK butuh metode pembayaran
+                    (karena belum benar-benar dibayar), sedangkan "Bayar Sekarang"
+                    tetap wajib pilih metode pembayaran dulu seperti biasa.
+                --}}
+                <div class="flex gap-2">
+                    <button @click="saveDraft()"
+                            :disabled="cart.length === 0"
+                            :class="cart.length === 0
+                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 cursor-pointer'"
+                            class="flex-1 py-3.5 rounded-xl text-xs font-bold transition-all duration-200">
+                        💾 Simpan / Draft
+                    </button>
+
+                    <button @click="checkout()"
+                            :disabled="cart.length === 0 || !paymentMethod"
+                            :class="cart.length === 0 || !paymentMethod
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200 cursor-pointer'"
+                            class="flex-[2] py-3.5 rounded-xl text-sm font-bold transition-all duration-200">
+                        Bayar Sekarang
+                    </button>
+                </div>
             </div>
 
         </div>
@@ -377,10 +454,82 @@
         </div>
     </div>
 
-    {{-- Form Submit Hidden --}}
+    {{-- ===== MODAL: HAPUS DRAFT ===== --}}
+    <div x-show="showDeleteDraftModal"
+         x-cloak
+         @keydown.escape.window="showDeleteDraftModal = false"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="display: none;">
+
+        <div x-show="showDeleteDraftModal"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             @click="showDeleteDraftModal = false"
+             class="absolute inset-0 bg-gray-900/50"></div>
+
+        <div x-show="showDeleteDraftModal"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             class="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+
+            <div class="flex flex-col items-center text-center">
+                <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center text-3xl mb-4">
+                    🗑️
+                </div>
+
+                <h3 class="text-lg font-bold text-gray-800">
+                    Hapus Draft?
+                </h3>
+
+                <p class="text-sm text-gray-500 mt-2 leading-relaxed">
+                    Yakin ingin menghapus
+                    <span class="font-semibold text-gray-700" x-text="deleteDraftLabel"></span>?
+                    Tindakan ini tidak dapat dibatalkan.
+                </p>
+
+                <div class="flex gap-3 w-full mt-6">
+                    <button type="button"
+                            @click="showDeleteDraftModal = false"
+                            class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700
+                                   py-2.5 rounded-xl text-sm font-semibold transition">
+                        Batal
+                    </button>
+
+                    <button type="button"
+                            @click="$refs.deleteDraftForm.action = deleteDraftAction; $refs.deleteDraftForm.submit()"
+                            class="flex-1 bg-red-600 hover:bg-red-700 text-white
+                                   py-2.5 rounded-xl text-sm font-semibold shadow-sm transition">
+                        Ya, Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Form hapus draft (hidden, action-nya diisi dinamis) --}}
+    <form x-ref="deleteDraftForm" method="POST" style="display:none">
+        @csrf
+        @method('DELETE')
+    </form>
+
+    {{-- Form Submit Hidden — Bayar --}}
     <form id="checkout-form" action="{{ route('sales.store') }}" method="POST" style="display:none">
         @csrf
         <div id="checkout-inputs"></div>
+    </form>
+
+    {{-- Form Submit Hidden — Simpan/Draft --}}
+    <form id="draft-form" action="{{ route('sales.draft.store') }}" method="POST" style="display:none">
+        @csrf
+        <div id="draft-inputs"></div>
     </form>
 
 </div>
@@ -389,51 +538,31 @@
 
 @push('scripts')
 <script>
-function pos(products, categories) {
+function pos(products, categories, initialCart, resumingDraftId) {
     return {
         products: products,
         categories: categories,
         search: '',
         selectedCategory: '',
-        cart: [],
+        cart: initialCart || [],
         paymentMethod: '',
         showModal: false,
         selectedProduct: null,
         selectedUnit: 'base',
         modalQty: 1,
 
-        /*
-        |----------------------------------------------------------------------
-        | AJAX SEARCH
-        |----------------------------------------------------------------------
-        | Sebelumnya SEMUA produk (stock > 0) di-dump langsung ke JS lewat
-        | @js($products) dan difilter di browser. Untuk katalog besar ini
-        | berat di initial load.
-        |
-        | Sekarang server hanya mengirim sebagian produk di awal. Setiap kali
-        | kasir mengetik di kolom pencarian atau memilih kategori, browser
-        | meminta hasil terbaru ke server lewat endpoint AJAX, dengan
-        | debounce 300ms agar tidak mengirim request di setiap ketikan.
-        */
+        resumingDraftId: resumingDraftId || null,
+
+        showDeleteDraftModal: false,
+        deleteDraftAction: '',
+        deleteDraftLabel: '',
+
         isSearching: false,
         _debounceTimer: null,
-
-        /*
-        | knownProducts menyimpan SEMUA produk yang pernah ditampilkan di
-        | sesi ini (bukan hanya hasil pencarian terakhir). Ini penting
-        | karena `products` akan DIGANTI setiap kali ada hasil pencarian
-        | baru — jika kasir sudah memasukkan produk X ke keranjang lalu
-        | mengetik pencarian lain, produk X mungkin tidak lagi ada di
-        | `products`, tapi validasi stok di increaseQty() tetap butuh
-        | data produk X. knownProducts menjaga referensi ini tetap ada.
-        */
         knownProducts: {},
 
         init() {
-            // Isi cache awal dari produk yang dikirim server saat load pertama
             this.cacheProducts(this.products);
-
-            // Setiap kali search atau kategori berubah, minta data ke server
             this.$watch('search', () => this.debouncedFetch());
             this.$watch('selectedCategory', () => this.debouncedFetch());
         },
@@ -474,19 +603,13 @@ function pos(products, categories) {
                 this.cacheProducts(results);
             } catch (error) {
                 console.error(error);
-                // Biarkan daftar produk sebelumnya tetap tampil jika request gagal,
-                // supaya kasir tidak kehilangan tampilan saat koneksi bermasalah.
+                
             } finally {
                 this.isSearching = false;
             }
         },
 
-        /*
-        | filteredProducts TIDAK memfilter apa pun lagi di sisi browser —
-        | server sudah mengembalikan hasil yang sesuai search & kategori.
-        | Getter ini dipertahankan agar bagian <template x-for> di HTML
-        | tidak perlu diubah.
-        */
+        
         get filteredProducts() {
             return this.products;
         },
@@ -563,6 +686,12 @@ function pos(products, categories) {
                 'MINUMAN': '🥤',
                 'Minuman': '🥤',
 
+                'BUMBU DAPUR': '🧂',
+                'Bumbu Dapur': '🧂',
+
+                'PERAWATAN TUBUH': '🧼',
+                'Perawatan Tubuh': '🧼',
+
                 'BANGUNAN': '🧱',
                 'Bangunan': '🧱',
             };
@@ -634,11 +763,6 @@ function pos(products, categories) {
         },
 
         increaseQty(index) {
-            /*
-            | Pakai knownProducts, bukan this.products — produk yang sudah
-            | ada di keranjang bisa jadi tidak lagi tampil di hasil
-            | pencarian terbaru, tapi datanya tetap tersimpan di cache ini.
-            */
             const product = this.knownProducts[this.cart[index].kode_produk];
 
             if (!product) {
@@ -661,7 +785,14 @@ function pos(products, categories) {
             if (confirm('Kosongkan keranjang?')) {
                 this.cart = [];
                 this.paymentMethod = '';
+                this.resumingDraftId = null;
             }
+        },
+
+        confirmDeleteDraft(action, label) {
+            this.deleteDraftAction = action;
+            this.deleteDraftLabel = label;
+            this.showDeleteDraftModal = true;
         },
 
         checkout() {
@@ -683,6 +814,15 @@ function pos(products, categories) {
             pmInput.value = this.paymentMethod;
             container.appendChild(pmInput);
 
+            
+            if (this.resumingDraftId) {
+                const draftInput = document.createElement('input');
+                draftInput.type = 'hidden';
+                draftInput.name = 'draft_sale_id';
+                draftInput.value = this.resumingDraftId;
+                container.appendChild(draftInput);
+            }
+
             this.cart.forEach((item, index) => {
                 const fields = {
                     [`items[${index}][kode_produk]`]: item.kode_produk,
@@ -701,6 +841,40 @@ function pos(products, categories) {
             });
 
             document.getElementById('checkout-form').submit();
+        },
+
+        saveDraft() {
+            if (this.cart.length === 0) {
+                return;
+            }
+
+            const container = document.getElementById('draft-inputs');
+            container.innerHTML = '';
+
+            if (this.resumingDraftId) {
+                const draftIdInput = document.createElement('input');
+                draftIdInput.type = 'hidden';
+                draftIdInput.name = 'draft_sale_id';
+                draftIdInput.value = this.resumingDraftId;
+                container.appendChild(draftIdInput);
+            }
+
+            this.cart.forEach((item, index) => {
+                const fields = {
+                    [`items[${index}][kode_produk]`]: item.kode_produk,
+                    [`items[${index}][quantity]`]: item.quantity,
+                };
+
+                Object.entries(fields).forEach(([name, value]) => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = name;
+                    input.value = value;
+                    container.appendChild(input);
+                });
+            });
+
+            document.getElementById('draft-form').submit();
         }
     }
 }
