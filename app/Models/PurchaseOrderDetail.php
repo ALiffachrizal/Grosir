@@ -27,10 +27,7 @@ class PurchaseOrderDetail extends Model
         return $this->belongsTo(Product::class, 'kode_produk', 'kode_produk');
     }
 
-    /**
-     * True kalau barang yang diterima lebih sedikit dari yang dipesan.
-     * Berguna untuk menandai baris "kurang kirim" di laporan/tampilan.
-     */
+    
     public function getIsShortDeliveryAttribute(): bool
     {
         return $this->quantity_received !== null

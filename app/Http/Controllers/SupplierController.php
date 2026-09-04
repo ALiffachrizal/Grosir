@@ -283,13 +283,6 @@ class SupplierController extends Controller
         |--------------------------------------------------------------------------
         | Lindungi kode supplier yang sudah digunakan
         |--------------------------------------------------------------------------
-        |
-        | Purchase order menghubungkan supplier melalui kode_supplier.
-        | Foreign key tersebut tidak menggunakan cascadeOnUpdate().
-        |
-        | Karena itu kode supplier tidak boleh diubah setelah supplier
-        | memiliki riwayat purchase order.
-        |
         */
         if (
             $newKodeSupplier !== $oldKodeSupplier

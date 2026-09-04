@@ -38,11 +38,6 @@ class DashboardController extends Controller
     /**
      * Ambil data chart penjualan 7 hari terakhir.
      *
-     * Sebelumnya method ini melakukan 7 query terpisah (satu query per hari
-     * dalam loop). Sekarang hanya 1 query dengan GROUP BY, hasilnya di-map
-     * ke array 7 hari di PHP (bukan di database) supaya hari yang tidak ada
-     * transaksi tetap muncul sebagai 0, bukan hilang dari chart.
-     *
      * @return array{0: array<int, string>, 1: array<int, float>} [labels, values]
      */
     private function getSalesChartData(): array
@@ -55,8 +50,6 @@ class DashboardController extends Controller
             ->selectRaw('date, SUM(total_price) as total')
             ->groupBy('date')
             ->pluck('total', 'date');
-        // Hasilnya: ['2026-06-30' => 150000, '2026-07-02' => 75000, ...]
-        // (tanggal tanpa transaksi tidak akan muncul di sini)
 
         $labels = [];
         $values = [];

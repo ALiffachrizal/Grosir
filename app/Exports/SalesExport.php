@@ -178,12 +178,7 @@ class SalesExport implements
         ];
     }
 
-    /**
-     * Menghitung nominal refund pada satu transaksi.
-     *
-     * Harga refund menggunakan harga ketika transaksi terjadi,
-     * bukan harga produk terbaru pada tabel products.
-     */
+    
     private function calculateRefundNominal(
         Sale $sale
     ): float {
@@ -270,15 +265,7 @@ class SalesExport implements
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
 
-                /*
-                |--------------------------------------------------------------------------
-                | Posisi baris
-                |--------------------------------------------------------------------------
-                |
-                | Baris pertama adalah heading. Jika tidak ada transaksi,
-                | total tetap ditulis pada baris kedua.
-                |
-                */
+                
                 $lastDataRow = max(
                     1,
                     $sheet->getHighestRow()

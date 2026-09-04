@@ -7,15 +7,7 @@
 @section('content')
 
 @php
-    /*
-    |--------------------------------------------------------------------------
-    | Parameter ekspor
-    |--------------------------------------------------------------------------
-    |
-    | PDF dan Excel harus memakai periode yang sama dengan laporan
-    | yang sedang ditampilkan.
-    |
-    */
+    
     $exportQuery = [
         'filter' => $filter,
     ];

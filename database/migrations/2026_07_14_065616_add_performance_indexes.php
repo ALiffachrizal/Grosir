@@ -6,20 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Migration ini HANYA menambah index, tidak mengubah struktur kolom
-     * apa pun. Aman dijalankan di database yang sudah berisi data.
-     */
+    
     public function up(): void
     {
-        // stock_logs: sering di-query berdasarkan reference_type + reference_id
-        // (misal: "ambil semua stock log untuk PO #5" atau "untuk Sale #12")
         Schema::table('stock_logs', function (Blueprint $table) {
             $table->index(['reference_type', 'reference_id'], 'stock_logs_reference_index');
         });
 
-        // sale_details: kombinasi ini dipakai intensif di RefundController
-        // untuk menghitung total yang sudah dibeli & sudah direfund per produk
         Schema::table('sale_details', function (Blueprint $table) {
             $table->index(['sale_id', 'kode_produk'], 'sale_details_sale_produk_index');
         });
@@ -34,8 +27,7 @@ return new class extends Migration
             $table->index('status', 'purchase_orders_status_index');
         });
 
-        // products: dipakai di halaman POS untuk filter stok > 0,
-        // dan di dashboard/report untuk cek stok menipis
+
         Schema::table('products', function (Blueprint $table) {
             $table->index(['stock', 'minimum_stock'], 'products_stock_minimum_index');
         });

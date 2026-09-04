@@ -27,18 +27,7 @@
                     @enderror
                 </div>
 
-                {{--
-                    Field "Kode Produk" SENGAJA DIHAPUS dari sini.
-
-                    Sebelumnya ada input manual untuk kode_produk di sini, padahal
-                    ProductController::store() sama sekali tidak membaca
-                    $request->kode_produk — kode produk selalu di-generate
-                    otomatis oleh Product::boot() (lihat generateKodeProduk()).
-
-                    Kalau field ini tetap ada, admin akan mengira harus mengisi
-                    kode sendiri padahal isiannya dibuang begitu saja oleh
-                    controller — membingungkan tanpa manfaat apa pun.
-                --}}
+                
 
                 {{-- Kategori --}}
                 <div>

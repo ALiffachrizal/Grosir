@@ -142,13 +142,10 @@ class ReceivingController extends Controller
                         );
                     }
 
-                    // Simpan jumlah yang benar-benar diterima di detail PO
-                    // (walau 0), supaya riwayat pesanan vs realisasi tetap
-                    // tercatat lengkap.
+                    
                     $detail->update(['quantity_received' => $receivedQty]);
 
-                    // Tidak ada barang yang diterima untuk produk ini —
-                    // tidak perlu menambah stok atau mencatat stock log.
+                
                     if ($receivedQty === 0) {
                         continue;
                     }

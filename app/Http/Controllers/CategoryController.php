@@ -10,14 +10,7 @@ use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
-    /**
-     * Menampilkan kategori (dipakai bersama produk & supplier) dan satuan.
-     *
-     * Sejak kategori supplier digabung ke kategori produk, halaman ini
-     * tidak lagi menampilkan "Kategori Produk" dan "Kategori Supplier"
-     * sebagai 2 daftar terpisah — sekarang cukup 1 daftar kategori yang
-     * dipakai bersama oleh keduanya.
-     */
+    
     public function index()
     {
         $categories = Category::product()
@@ -126,16 +119,7 @@ class CategoryController extends Controller
         );
     }
 
-    /**
-     * Memperbarui nama dan/atau kode kategori atau satuan.
-     *
-     * Tipe (product/unit) SENGAJA TIDAK BISA diubah lewat sini — kalau
-     * tipe boleh diganti bebas, kategori yang sudah dipakai produk/supplier
-     * bisa "berpindah kelompok" secara tidak sengaja dan bikin data
-     * yang sudah ada jadi tidak konsisten. Kalau memang perlu pindah tipe,
-     * sebaiknya hapus lalu buat baru (dan validasi destroy() akan
-     * mencegah penghapusan kalau kategori itu masih dipakai).
-     */
+    
     public function update(Request $request, Category $category)
     {
         $request->validate([
@@ -225,15 +209,7 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Kategori (dipakai produk & supplier)
-        |--------------------------------------------------------------------------
-        |
-        | Karena sekarang 1 kategori bisa dipakai bersama oleh produk
-        | MAUPUN supplier, kedua relasi ini harus dicek sebelum kategori
-        | boleh dihapus — bukan cuma salah satu seperti sebelumnya.
-        */
+        
         if ($category->type === 'product') {
             $jumlahProduk = $category->products()->count();
             $jumlahSupplier = $category->suppliers()->count();
