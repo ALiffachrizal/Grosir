@@ -12,7 +12,7 @@ class Sale extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'username',
         'date',
         'total_price',
         'payment_method',
@@ -33,7 +33,7 @@ class Sale extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'username', 'username');
     }
 
     /**

@@ -11,11 +11,15 @@ class Supplier extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = 'kode_supplier';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'kode_supplier',
         'name',
         'phone',
-        'category_id',
+        'kode_kategori',
     ];
 
     protected $appends = [
@@ -24,7 +28,7 @@ class Supplier extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class, 'kode_kategori', 'kode_kategori');
     }
 
     public function purchaseOrders(): HasMany

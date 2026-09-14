@@ -8,14 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    /**
-     * Handle an incoming request.
-     * 
-     * Penggunaan di routes:
-     * ->middleware('role:admin')
-     * ->middleware('role:admin,warehouse')
-     * ->middleware('role:admin,cashier')
-     */
+    
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         // Pastikan user sudah login

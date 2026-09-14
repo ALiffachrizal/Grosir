@@ -50,19 +50,14 @@ class SupplierSeeder extends Seeder
         ];
 
         foreach ($suppliers as $supplierData) {
-            $category = Category::where(
-                'kode_kategori',
-                $supplierData['category_code']
-            )->firstOrFail();
-
             Supplier::updateOrCreate(
                 [
                     'kode_supplier' => $supplierData['kode_supplier'],
                 ],
                 [
-                    'name'        => $supplierData['name'],
-                    'phone'       => $supplierData['phone'],
-                    'category_id' => $category->id,
+                    'name'          => $supplierData['name'],
+                    'phone'         => $supplierData['phone'],
+                    'kode_kategori' => $supplierData['category_code'],
                 ]
             );
         }

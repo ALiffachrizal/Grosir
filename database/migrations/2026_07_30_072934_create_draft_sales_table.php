@@ -12,8 +12,10 @@ return new class extends Migration
         Schema::create('draft_sales', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('user_id')
-                ->constrained('users')
+            $table->string('username', 255);
+            $table->foreign('username')
+                ->references('username')
+                ->on('users')
                 ->cascadeOnDelete();
 
             

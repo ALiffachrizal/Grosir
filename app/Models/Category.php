@@ -10,6 +10,10 @@ class Category extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = 'kode_kategori';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'kode_kategori',
         'name',
@@ -36,11 +40,11 @@ class Category extends Model
 
     public function products(): HasMany
     {
-        return $this->hasMany(Product::class);
+        return $this->hasMany(Product::class, 'kode_kategori', 'kode_kategori');
     }
 
     public function suppliers(): HasMany
     {
-        return $this->hasMany(Supplier::class);
+        return $this->hasMany(Supplier::class, 'kode_kategori', 'kode_kategori');
     }
 }

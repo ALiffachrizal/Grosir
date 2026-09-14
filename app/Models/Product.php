@@ -11,10 +11,14 @@ class Product extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = 'kode_produk';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'kode_produk',
         'name',
-        'category_id',
+        'kode_kategori',
         'base_unit',
         'items_per_package',
         'items_per_bundle',
@@ -22,17 +26,23 @@ class Product extends Model
         'minimum_stock',
         'purchase_price',
         'selling_price',
+        'promo_min_qty',
+        'promo_bonus_qty',
     ];
 
     protected $appends = [
         'category_name',
+        'has_promo',
+        'promo_label',
     ];
 
     protected function casts(): array
     {
         return [
-            'purchase_price' => 'decimal:2',
-            'selling_price'  => 'decimal:2',
+            'purchase_price'  => 'decimal:2',
+            'selling_price'   => 'decimal:2',
+            'promo_min_qty'   => 'integer',
+            'promo_bonus_qty' => 'integer',
         ];
     }
 
@@ -102,7 +112,12 @@ class Product extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class, 'kode_kategori', 'kode_kategori');
+    }
+
+    public function supplier(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Supplier::class, 'kode_kategori', 'kode_kategori');
     }
 
     public function purchaseOrderDetails(): HasMany
@@ -150,6 +165,20 @@ class Product extends Model
     public function getPurchasePriceFormattedAttribute(): string
     {
         return 'Rp ' . number_format($this->purchase_price, 0, ',', '.');
+    }
+
+    public function getHasPromoAttribute(): bool
+    {
+        return (int) $this->promo_min_qty > 0 && (int) $this->promo_bonus_qty > 0;
+    }
+
+    public function getPromoLabelAttribute(): string
+    {
+        if (!$this->has_promo) {
+            return '';
+        }
+
+        return "Beli {$this->promo_min_qty} Gratis {$this->promo_bonus_qty}";
     }
 
     public function hasTransactionHistory(): bool

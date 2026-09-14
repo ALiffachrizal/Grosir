@@ -109,11 +109,14 @@ class SalesExport implements
                     (string) $detail->description
                 );
 
+                $bonusText = $detail->bonus_quantity > 0 ? ' + ' . $detail->bonus_quantity . ' bonus' : '';
+
                 $text = $productName
                     . ' ('
                     . $detail->quantity
                     . ' '
                     . $baseUnit
+                    . $bonusText
                     . ')';
 
                 if ($description !== '') {

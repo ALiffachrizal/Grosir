@@ -148,6 +148,14 @@
                              : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
                     <span>📈</span><span>Laporan Stok</span>
                 </a>
+
+                <a href="{{ route('reports.purchase-orders') }}"
+                   class="flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-all
+                          {{ request()->routeIs('reports.purchase-orders*')
+                             ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
+                             : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
+                    <span>📊</span><span>Laporan PO</span>
+                </a>
                 @endif
 
                 {{-- TRANSAKSI - admin & cashier --}}
@@ -184,7 +192,7 @@
                           {{ request()->routeIs('reports.sales')
                              ? 'border-l-4 border-yellow-400 bg-white/10 text-white font-semibold pl-1.5'
                              : 'text-gray-400 hover:text-white hover:bg-white/5' }}">
-                    <span>💰</span><span>Laporan Penjualan</span>
+                    <span>💰</span><span>Laporan</span>
                 </a>
                 @endif
 

@@ -9,12 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('kode_produk', 10)->unique()->nullable();
+            $table->string('kode_produk', 10)->primary();
             $table->string('name');
 
-            $table->foreignId('category_id')
-                ->constrained('categories')
+            $table->string('kode_kategori', 10);
+            $table->foreign('kode_kategori')
+                ->references('kode_kategori')
+                ->on('categories')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
 

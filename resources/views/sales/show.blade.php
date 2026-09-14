@@ -57,7 +57,14 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-5 py-3 font-medium text-gray-800">{{ $detail->product->name }}</td>
                         <td class="px-5 py-3 text-gray-500 text-xs">{{ $detail->description ?? '-' }}</td>
-                        <td class="px-5 py-3 text-center text-gray-800">{{ $detail->quantity }}</td>
+                        <td class="px-5 py-3 text-center text-gray-800">
+                            {{ $detail->quantity }}
+                            @if($detail->bonus_quantity > 0)
+                                <span class="block text-[11px] font-bold text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 mt-0.5">
+                                    🎁 +{{ $detail->bonus_quantity }} Bonus
+                                </span>
+                            @endif
+                        </td>
                         <td class="px-5 py-3 text-right text-gray-600">{{ $detail->unit_price_formatted }}</td>
                         <td class="px-5 py-3 text-right font-bold text-gray-800">{{ $detail->subtotal_formatted }}</td>
                     </tr>

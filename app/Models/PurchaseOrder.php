@@ -13,7 +13,7 @@ class PurchaseOrder extends Model
 
     protected $fillable = [
         'kode_supplier',
-        'user_id',
+        'username',
         'order_date',
         'status',
     ];
@@ -27,7 +27,7 @@ class PurchaseOrder extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'username', 'username');
     }
 
     public function supplier(): BelongsTo

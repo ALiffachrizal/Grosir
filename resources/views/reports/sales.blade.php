@@ -487,13 +487,20 @@
                             <td class="min-w-64 px-5 py-4">
                                 <div class="flex flex-wrap gap-1.5">
                                     @foreach($sale->details as $detail)
-                                        <span class="inline-flex rounded-lg bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
-                                            {{ $detail->product->name
-                                                ?? $detail->kode_produk }}
+                                        <span class="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
+                                            <span>
+                                                {{ $detail->product->name
+                                                    ?? $detail->kode_produk }}
 
-                                            ({{ $detail->quantity }}
-                                            {{ $detail->product->base_unit
-                                                ?? 'unit' }})
+                                                ({{ $detail->quantity }}
+                                                {{ $detail->product->base_unit
+                                                    ?? 'unit' }})
+                                            </span>
+                                            @if($detail->bonus_quantity > 0)
+                                                <span class="font-bold text-amber-700 bg-amber-100 rounded px-1 text-[10px]">
+                                                    +{{ $detail->bonus_quantity }} bonus
+                                                </span>
+                                            @endif
                                         </span>
                                     @endforeach
                                 </div>

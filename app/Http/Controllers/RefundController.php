@@ -287,7 +287,7 @@ class RefundController extends Controller
                 $refund = Refund::create([
                     'sale_id' => $sale->id,
                     'kode_produk' => $kodeProduk,
-                    'user_id' => auth()->id(),
+                    'username' => auth()->user()->username,
                     'quantity' => $requestedQuantity,
                     'unit_price' => $saleDetail->unit_price,
                     'date' => Carbon::today(),
@@ -306,7 +306,7 @@ class RefundController extends Controller
                 */
                 StockLog::create([
                     'kode_produk' => $kodeProduk,
-                    'user_id' => auth()->id(),
+                    'username' => auth()->user()->username,
                     'type' => 'refund',
                     'quantity' => $requestedQuantity,
                     'reference_type' => 'refund',

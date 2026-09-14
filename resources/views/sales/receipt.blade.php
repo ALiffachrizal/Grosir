@@ -55,6 +55,12 @@
                         </span>
                         <span class="font-bold">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</span>
                     </div>
+                    @if($detail->bonus_quantity > 0)
+                    <div class="flex justify-between mt-0.5 text-amber-800 bg-amber-50 px-1 py-0.5 rounded text-[11px]">
+                        <span>🎁 Bonus: {{ $detail->bonus_quantity }} {{ $detail->product->base_unit ?? '' }}</span>
+                        <span class="font-semibold">Gratis (Rp 0)</span>
+                    </div>
+                    @endif
                 </div>
                 @endforeach
             </div>

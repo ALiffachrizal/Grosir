@@ -14,8 +14,8 @@ class ProductController extends Controller
     {
         $query = Product::with('category');
 
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
+        if ($request->filled('kode_kategori')) {
+            $query->where('kode_kategori', $request->kode_kategori);
         }
 
         if ($request->stock_status === 'menipis') {
@@ -56,9 +56,9 @@ class ProductController extends Controller
                 'string',
                 'max:255',
             ],
-            'category_id' => [
+            'kode_kategori' => [
                 'required',
-                Rule::exists('categories', 'id')->where(function ($query) {
+                Rule::exists('categories', 'kode_kategori')->where(function ($query) {
                     return $query->where('type', 'product');
                 }),
             ],
@@ -96,11 +96,21 @@ class ProductController extends Controller
                 'numeric',
                 'min:0',
             ],
+            'promo_min_qty' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
+            'promo_bonus_qty' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
         ], [
             'name.required' => 'Nama produk wajib diisi.',
 
-            'category_id.required' => 'Kategori wajib dipilih.',
-            'category_id.exists'   => 'Kategori tidak valid.',
+            'kode_kategori.required' => 'Kategori wajib dipilih.',
+            'kode_kategori.exists'   => 'Kategori tidak valid.',
 
             'base_unit.required' => 'Satuan dasar wajib dipilih.',
             'base_unit.in'       => 'Satuan dasar tidak valid.',
@@ -126,12 +136,17 @@ class ProductController extends Controller
             'selling_price.required' => 'Harga jual wajib diisi.',
             'selling_price.numeric'  => 'Harga jual harus berupa angka.',
             'selling_price.min'      => 'Harga jual tidak boleh kurang dari 0.',
+
+            'promo_min_qty.integer'   => 'Minimal beli promo harus berupa angka bulat.',
+            'promo_min_qty.min'       => 'Minimal beli promo tidak boleh kurang dari 0.',
+            'promo_bonus_qty.integer' => 'Bonus promo harus berupa angka bulat.',
+            'promo_bonus_qty.min'     => 'Bonus promo tidak boleh kurang dari 0.',
         ]);
 
         // kode_produk tidak perlu diisi — otomatis di-generate oleh model
         $product = Product::create([
             'name'              => $request->name,
-            'category_id'       => $request->category_id,
+            'kode_kategori'     => $request->kode_kategori,
             'base_unit'         => $request->base_unit,
             'items_per_package' => $request->items_per_package,
             'items_per_bundle'  => $request->items_per_bundle ?? 1,
@@ -139,16 +154,18 @@ class ProductController extends Controller
             'minimum_stock'     => $request->minimum_stock,
             'purchase_price'    => $request->purchase_price,
             'selling_price'     => $request->selling_price,
+            'promo_min_qty'     => $request->filled('promo_min_qty') ? (int) $request->promo_min_qty : 0,
+            'promo_bonus_qty'   => $request->filled('promo_bonus_qty') ? (int) $request->promo_bonus_qty : 0,
         ]);
 
         if ($product->stock > 0) {
             StockLog::create([
                 'kode_produk'    => $product->kode_produk,
-                'user_id'        => auth()->id(),
+                'username'       => auth()->user()->username,
                 'type'           => 'in',
                 'quantity'       => $product->stock,
                 'reference_type' => 'initial_stock',
-                'reference_id'   => $product->id,
+                'reference_id'   => null,
                 'note'           => 'Stok awal produk',
             ]);
         }
@@ -185,9 +202,9 @@ class ProductController extends Controller
                 'string',
                 'max:255',
             ],
-            'category_id' => [
+            'kode_kategori' => [
                 'required',
-                Rule::exists('categories', 'id')->where(function ($query) {
+                Rule::exists('categories', 'kode_kategori')->where(function ($query) {
                     return $query->where('type', 'product');
                 }),
             ],
@@ -220,11 +237,21 @@ class ProductController extends Controller
                 'numeric',
                 'min:0',
             ],
+            'promo_min_qty' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
+            'promo_bonus_qty' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
         ], [
             'name.required' => 'Nama produk wajib diisi.',
 
-            'category_id.required' => 'Kategori wajib dipilih.',
-            'category_id.exists'   => 'Kategori tidak valid.',
+            'kode_kategori.required' => 'Kategori wajib dipilih.',
+            'kode_kategori.exists'   => 'Kategori tidak valid.',
 
             'base_unit.required' => 'Satuan dasar wajib dipilih.',
             'base_unit.in'       => 'Satuan dasar tidak valid.',
@@ -247,17 +274,24 @@ class ProductController extends Controller
             'selling_price.required' => 'Harga jual wajib diisi.',
             'selling_price.numeric'  => 'Harga jual harus berupa angka.',
             'selling_price.min'      => 'Harga jual tidak boleh kurang dari 0.',
+
+            'promo_min_qty.integer'   => 'Minimal beli promo harus berupa angka bulat.',
+            'promo_min_qty.min'       => 'Minimal beli promo tidak boleh kurang dari 0.',
+            'promo_bonus_qty.integer' => 'Bonus promo harus berupa angka bulat.',
+            'promo_bonus_qty.min'     => 'Bonus promo tidak boleh kurang dari 0.',
         ]);
 
         $product->update([
             'name'              => $request->name,
-            'category_id'       => $request->category_id,
+            'kode_kategori'     => $request->kode_kategori,
             'base_unit'         => $request->base_unit,
             'items_per_package' => $request->items_per_package,
             'items_per_bundle'  => $request->items_per_bundle ?? 1,
             'minimum_stock'     => $request->minimum_stock,
             'purchase_price'    => $request->purchase_price,
             'selling_price'     => $request->selling_price,
+            'promo_min_qty'     => $request->filled('promo_min_qty') ? (int) $request->promo_min_qty : 0,
+            'promo_bonus_qty'   => $request->filled('promo_bonus_qty') ? (int) $request->promo_bonus_qty : 0,
         ]);
 
         return redirect()->route('products.index')

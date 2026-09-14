@@ -10,8 +10,10 @@ return new class extends Migration
     {
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')
-                  ->constrained('users')
+            $table->string('username', 255);
+            $table->foreign('username')
+                  ->references('username')
+                  ->on('users')
                   ->restrictOnDelete();
             $table->date('date');
             $table->decimal('total_price', 15, 2)->default(0);

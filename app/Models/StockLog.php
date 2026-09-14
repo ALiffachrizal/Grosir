@@ -12,7 +12,7 @@ class StockLog extends Model
 
     protected $fillable = [
         'kode_produk',
-        'user_id',
+        'username',
         'type',
         'quantity',
         'reference_type',
@@ -27,7 +27,7 @@ class StockLog extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'username', 'username');
     }
 
     public function getTypeLabelAttribute(): string

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderDetail;
 use App\Models\Supplier;
@@ -24,7 +25,7 @@ class PurchaseOrderController extends Controller
         return view('purchase-orders.index', compact('purchaseOrders'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $suppliers = Supplier::with('category')
             ->orderBy('name')
@@ -34,7 +35,26 @@ class PurchaseOrderController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('purchase-orders.create', compact('suppliers', 'products'));
+        $prefillProduct = null;
+        $prefillSupplier = null;
+
+        if ($request->filled('product')) {
+            $prefillProduct = Product::with('category')
+                ->where('kode_produk', $request->query('product'))
+                ->first();
+
+            if ($prefillProduct) {
+                $prefillSupplier = Supplier::with('category')
+                    ->where('kode_kategori', $prefillProduct->kode_kategori)
+                    ->first();
+            }
+        } elseif ($request->filled('supplier')) {
+            $prefillSupplier = Supplier::with('category')
+                ->where('kode_supplier', $request->query('supplier'))
+                ->first();
+        }
+
+        return view('purchase-orders.create', compact('suppliers', 'products', 'prefillProduct', 'prefillSupplier'));
     }
 
     public function store(Request $request)
@@ -53,10 +73,25 @@ class PurchaseOrderController extends Controller
             'products.min'           => 'Minimal 1 produk harus dipilih.',
         ]);
 
+        // Validasi aturan: Jumlah pesanan minimal harus sebesar minimal stok produk
+        $productCodes = collect($request->products)->pluck('kode_produk')->unique();
+        $dbProducts = Product::whereIn('kode_produk', $productCodes)->get()->keyBy('kode_produk');
+
+        foreach ($request->products as $index => $item) {
+            $product = $dbProducts->get($item['kode_produk']);
+            if ($product && $product->minimum_stock > 0) {
+                if ((int) $item['quantity'] < (int) $product->minimum_stock) {
+                    throw ValidationException::withMessages([
+                        "products.{$index}.quantity" => "Jumlah pesanan untuk {$product->name} minimal {$product->minimum_stock} {$product->base_unit} (sesuai batas minimal stok).",
+                    ]);
+                }
+            }
+        }
+
         DB::transaction(function () use ($request) {
             $po = PurchaseOrder::create([
                 'kode_supplier' => $request->kode_supplier,
-                'user_id'       => auth()->id(),
+                'username'      => auth()->user()->username,
                 'order_date'    => $request->order_date,
                 'status'        => 'pending',
             ]);

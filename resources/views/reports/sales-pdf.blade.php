@@ -716,7 +716,7 @@
                                 <span class="text-gray">
                                     ({{ $detail->quantity }}
                                     {{ $detail->product->base_unit
-                                        ?? 'unit' }})
+                                        ?? 'unit' }}@if($detail->bonus_quantity > 0) + {{ $detail->bonus_quantity }} bonus @endif)
                                 </span>
 
                                 @if(!empty($detail->description))

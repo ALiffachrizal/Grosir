@@ -40,16 +40,7 @@ class ReceivingController extends Controller
 
     // ==================== CONFIRM ====================
 
-    /**
-     * Mengonfirmasi penerimaan barang.
-     *
-     * Berbeda dari sebelumnya: jumlah yang ditambahkan ke stok TIDAK LAGI
-     * selalu sama persis dengan jumlah yang dipesan. Admin bisa mengoreksi
-     * jumlah yang benar-benar diterima per produk (misalnya supplier kirim
-     * lebih sedikit karena stok mereka habis) — sistem hanya akan menambah
-     * stok sesuai jumlah yang benar-benar dimasukkan di form, dan mencatat
-     * jumlah pesanan asli tetap tersimpan untuk perbandingan/audit.
-     */
+
     public function confirm(Request $request, PurchaseOrder $purchaseOrder)
     {
         if ($purchaseOrder->status !== 'pending') {
@@ -105,15 +96,6 @@ class ReceivingController extends Controller
 
                 foreach ($po->details as $detail) {
 
-                    /*
-                    |----------------------------------------------------------------
-                    | Validasi jumlah diterima terhadap jumlah yang dipesan
-                    |----------------------------------------------------------------
-                    | Jumlah diterima TIDAK BOLEH melebihi jumlah yang dipesan —
-                    | kalau supplier ternyata kirim lebih banyak dari pesanan,
-                    | itu di luar cakupan PO ini dan harus ditangani terpisah
-                    | (misalnya sebagai PO/penerimaan baru).
-                    */
                     if (! $receivedMap->has($detail->kode_produk)) {
                         throw ValidationException::withMessages([
                             'items' => 'Data penerimaan tidak lengkap untuk salah satu produk.',
@@ -164,7 +146,7 @@ class ReceivingController extends Controller
 
                     StockLog::create([
                         'kode_produk'    => $product->kode_produk,
-                        'user_id'        => auth()->id(),
+                        'username'       => auth()->user()->username,
                         'type'           => 'in',
                         'quantity'       => $receivedQty,
                         'reference_type' => 'purchase_order',

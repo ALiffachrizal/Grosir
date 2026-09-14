@@ -14,6 +14,7 @@ class SaleDetail extends Model
         'sale_id',
         'kode_produk',
         'quantity',
+        'bonus_quantity',
         'unit_price',
         'description',
     ];
@@ -21,7 +22,8 @@ class SaleDetail extends Model
     protected function casts(): array
     {
         return [
-            'unit_price' => 'decimal:2',
+            'bonus_quantity' => 'integer',
+            'unit_price'     => 'decimal:2',
         ];
     }
 
@@ -48,5 +50,10 @@ class SaleDetail extends Model
     public function getUnitPriceFormattedAttribute(): string
     {
         return 'Rp ' . number_format($this->unit_price, 0, ',', '.');
+    }
+
+    public function getTotalQuantityAttribute(): int
+    {
+        return (int) $this->quantity + (int) $this->bonus_quantity;
     }
 }

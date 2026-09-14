@@ -26,7 +26,7 @@
             <div>
                 <p class="text-gray-500 mb-1">Supplier</p>
                 <p class="font-semibold text-gray-800">{{ $purchaseOrder->supplier->name }}</p>
-                <p class="text-xs text-gray-400">{{ $purchaseOrder->supplier->category }}</p>
+                <p class="text-xs text-gray-400">{{ $purchaseOrder->supplier->category_name }}</p>
             </div>
             <div>
                 <p class="text-gray-500 mb-1">Dibuat Oleh</p>
@@ -72,10 +72,20 @@
                         <td class="px-5 py-3 font-medium text-gray-800">{{ $detail->product->name }}</td>
                         <td class="px-5 py-3">
                             <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
-                                {{ $detail->product->category }}
+                                {{ $detail->product->category_name }}
                             </span>
                         </td>
-                        <td class="px-5 py-3 text-center font-bold text-gray-800">{{ $detail->quantity }}</td>
+                        <td class="px-5 py-3 text-center">
+                            @if($detail->quantity_received !== null && $detail->is_short_delivery)
+                                <div class="font-bold text-gray-800">{{ $detail->quantity_received }}</div>
+                                <div class="text-xs text-gray-400">dari {{ $detail->quantity }} dipesan</div>
+                                <span class="inline-block mt-0.5 text-xs text-red-600 font-medium bg-red-50 px-1.5 py-0.5 rounded">
+                                    Pengiriman Kurang 
+                                </span>
+                            @else
+                                <span class="font-bold text-gray-800">{{ $detail->quantity_received ?? $detail->quantity }}</span>
+                            @endif
+                        </td>
                         <td class="px-5 py-3 text-gray-600">{{ $detail->product->base_unit }}</td>
                     </tr>
                     @endforeach
