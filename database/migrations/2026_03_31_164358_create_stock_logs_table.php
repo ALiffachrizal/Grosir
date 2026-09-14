@@ -15,13 +15,15 @@ return new class extends Migration
                   ->references('kode_produk')
                   ->on('products')
                   ->restrictOnDelete();
-            $table->foreignId('user_id')
-                  ->constrained('users')
+            $table->string('username', 255);
+            $table->foreign('username')
+                  ->references('username')
+                  ->on('users')
                   ->restrictOnDelete();
             $table->enum('type', ['in', 'out', 'refund']);
             $table->integer('quantity');
             $table->string('reference_type');
-            $table->unsignedBigInteger('reference_id');
+            $table->unsignedBigInteger('reference_id')->nullable();
             $table->string('note')->nullable();
             $table->timestamps();
         });

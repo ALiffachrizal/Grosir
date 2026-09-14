@@ -129,7 +129,7 @@ class CategoryController extends Controller
                 'max:10',
                 'regex:/^[A-Za-z0-9]+$/',
                 Rule::unique('categories', 'kode_kategori')
-                    ->ignore($category->id),
+                    ->ignore($category->kode_kategori, 'kode_kategori'),
             ],
             'name' => [
                 'required',
@@ -175,7 +175,7 @@ class CategoryController extends Controller
         */
         $categoryExists = Category::where('type', $category->type)
             ->whereRaw('UPPER(name) = ?', [$name])
-            ->where('id', '!=', $category->id)
+            ->where('kode_kategori', '!=', $category->kode_kategori)
             ->exists();
 
         if ($categoryExists) {

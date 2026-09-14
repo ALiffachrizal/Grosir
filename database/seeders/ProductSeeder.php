@@ -103,19 +103,12 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($products as $productData) {
-            $category = Category::where(
-                'kode_kategori',
-                $productData['category_code']
-            )->firstOrFail();
-
-            // kode_produk tidak perlu diisi di sini — otomatis di-generate
-            // oleh event creating di model Product saat produk baru dibuat
             $product = Product::updateOrCreate(
                 [
                     'name' => $productData['name'],
                 ],
                 [
-                    'category_id'       => $category->id,
+                    'kode_kategori'     => $productData['category_code'],
                     'base_unit'         => $productData['base_unit'],
                     'items_per_package' => $productData['items_per_package'],
                     'items_per_bundle'  => $productData['items_per_bundle'],
@@ -132,10 +125,10 @@ class ProductSeeder extends Seeder
                         'kode_produk'    => $product->kode_produk,
                         'type'           => 'in',
                         'reference_type' => 'initial_stock',
-                        'reference_id'   => $product->id,
+                        'reference_id'   => null,
                     ],
                     [
-                        'user_id'  => $admin->id,
+                        'username' => $admin->username,
                         'quantity' => $product->stock,
                         'note'     => 'Stok awal produk dari seeder',
                     ]

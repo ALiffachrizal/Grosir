@@ -8,6 +8,10 @@ return new class extends Migration
 
     public function up(): void
     {
+        if (!Schema::hasColumn('suppliers', 'category_id') || !Schema::hasColumn('categories', 'id')) {
+            return;
+        }
+
         DB::transaction(function () {
             $supplierCategories = DB::table('categories')
                 ->where('type', 'supplier')

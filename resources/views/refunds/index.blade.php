@@ -85,7 +85,7 @@
                             @foreach($sale->details as $detail)
                             @php
                                 $refundedQty = $sale->refunds
-                                    ->where('product_id', $detail->product_id)
+                                    ->where('kode_produk', $detail->kode_produk)
                                     ->sum('quantity');
                             @endphp
                             <span class="text-xs px-2.5 py-1 rounded-lg

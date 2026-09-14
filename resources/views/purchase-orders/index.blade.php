@@ -9,7 +9,7 @@
 <div class="bg-white rounded-xl shadow">
 
     {{-- Header --}}
-    <div class="flex items-center justify-between p-5 border-b border-gray-100">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 border-b border-gray-100">
         <div>
             <h3 class="text-gray-800 font-semibold">Daftar Purchase Order</h3>
             <p class="text-gray-500 text-sm mt-0.5">
@@ -17,10 +17,19 @@
             </p>
         </div>
 
-        <a href="{{ route('purchase-orders.create') }}"
-           class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-            + Buat PO Baru
-        </a>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('reports.purchase-orders') }}"
+               class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                <span>📊</span>
+                <span>Laporan PO</span>
+            </a>
+
+            <a href="{{ route('purchase-orders.create') }}"
+               class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                <span>+</span>
+                <span>Buat PO Baru</span>
+            </a>
+        </div>
     </div>
 
     {{-- Tabel --}}

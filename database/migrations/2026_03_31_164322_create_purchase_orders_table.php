@@ -15,8 +15,10 @@ return new class extends Migration
                   ->references('kode_supplier')
                   ->on('suppliers')
                   ->restrictOnDelete();
-            $table->foreignId('user_id')
-                  ->constrained('users')
+            $table->string('username', 255);
+            $table->foreign('username')
+                  ->references('username')
+                  ->on('users')
                   ->restrictOnDelete();
             $table->date('order_date');
             $table->enum('status', ['pending', 'received'])->default('pending');

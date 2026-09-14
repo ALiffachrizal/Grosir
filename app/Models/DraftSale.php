@@ -12,7 +12,7 @@ class DraftSale extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'username',
         'note',
     ];
 
@@ -20,7 +20,7 @@ class DraftSale extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'username', 'username');
     }
 
     public function details(): HasMany

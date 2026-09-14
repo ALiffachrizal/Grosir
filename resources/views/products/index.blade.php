@@ -27,7 +27,7 @@
                   class="flex flex-wrap items-center gap-2">
 
                 {{-- Filter Kategori --}}
-                <select name="category_id"
+                <select name="kode_kategori"
                         onchange="this.form.submit()"
                         class="px-3 py-2 border border-gray-300 rounded-lg text-sm
                                focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -35,8 +35,8 @@
                     <option value="">Semua Kategori</option>
 
                     @foreach($productCategories as $cat)
-                        <option value="{{ $cat->id }}"
-                            {{ (string) request('category_id') === (string) $cat->id ? 'selected' : '' }}>
+                        <option value="{{ $cat->kode_kategori }}"
+                            {{ (string) request('kode_kategori') === (string) $cat->kode_kategori ? 'selected' : '' }}>
 
                             {{ $cat->name }}
                         </option>
@@ -63,7 +63,7 @@
                 </select>
 
                 {{-- Tombol Reset --}}
-                @if(request()->filled('category_id') || request()->filled('stock_status'))
+                @if(request()->filled('kode_kategori') || request()->filled('stock_status'))
                     <a href="{{ route('products.index') }}"
                        class="bg-gray-100 hover:bg-gray-200 text-gray-700
                               px-3 py-2 rounded-lg text-sm font-medium transition">
@@ -83,7 +83,7 @@
     </div>
 
     {{-- Informasi Filter Aktif --}}
-    @if(request()->filled('category_id') || request()->filled('stock_status'))
+    @if(request()->filled('kode_kategori') || request()->filled('stock_status'))
         <div class="px-5 py-3 bg-blue-50 border-b border-blue-100">
             <p class="text-sm text-blue-700">
                 Menampilkan {{ $products->count() }} produk berdasarkan filter yang dipilih.
@@ -135,6 +135,13 @@
                                     {{ $product->base_unit }}/Bundle
                                 @endif
                             </p>
+
+                            @if($product->has_promo)
+                                <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-bold px-2 py-0.5 rounded-md mt-1">
+                                    <span>🎁</span>
+                                    <span>{{ $product->promo_label }}</span>
+                                </span>
+                            @endif
                         </td>
 
                         {{-- Kategori --}}
@@ -225,7 +232,7 @@
 
                             <div class="text-4xl mb-2">📦</div>
 
-                            @if(request()->filled('category_id') || request()->filled('stock_status'))
+                            @if(request()->filled('kode_kategori') || request()->filled('stock_status'))
                                 <p>Tidak ada produk yang sesuai dengan filter.</p>
 
                                 <a href="{{ route('products.index') }}"

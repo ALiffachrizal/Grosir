@@ -18,10 +18,10 @@ class SupplierController extends Controller
         $query = Supplier::with('category')
             ->orderBy('name');
 
-        if ($request->filled('category_id')) {
+        if ($request->filled('kode_kategori')) {
             $query->where(
-                'category_id',
-                $request->category_id
+                'kode_kategori',
+                $request->kode_kategori
             );
         }
 
@@ -77,9 +77,9 @@ class SupplierController extends Controller
                 'max:255',
             ],
 
-            'category_id' => [
+            'kode_kategori' => [
                 'required',
-                Rule::exists('categories', 'id')
+                Rule::exists('categories', 'kode_kategori')
                     ->where(function ($query) {
                         return $query->where(
                             'type',
@@ -118,10 +118,10 @@ class SupplierController extends Controller
             'phone.max' =>
                 'Nomor telepon maksimal 255 karakter.',
 
-            'category_id.required' =>
+            'kode_kategori.required' =>
                 'Kategori supplier wajib dipilih.',
 
-            'category_id.exists' =>
+            'kode_kategori.exists' =>
                 'Kategori supplier tidak valid.',
         ]);
 
@@ -139,7 +139,7 @@ class SupplierController extends Controller
             'kode_supplier' => $kodeSupplier,
             'name' => $name,
             'phone' => $phone !== '' ? $phone : null,
-            'category_id' => $validated['category_id'],
+            'kode_kategori' => $validated['kode_kategori'],
         ]);
 
         return redirect()
@@ -201,7 +201,7 @@ class SupplierController extends Controller
                 Rule::unique(
                     'suppliers',
                     'kode_supplier'
-                )->ignore($supplier->id),
+                )->ignore($supplier->kode_supplier, 'kode_supplier'),
             ],
 
             'name' => [
@@ -216,10 +216,10 @@ class SupplierController extends Controller
                 'max:255',
             ],
 
-            'category_id' => [
+            'kode_kategori' => [
                 'required',
 
-                Rule::exists('categories', 'id')
+                Rule::exists('categories', 'kode_kategori')
                     ->where(function ($query) {
                         return $query->where(
                             'type',
@@ -258,10 +258,10 @@ class SupplierController extends Controller
             'phone.max' =>
                 'Nomor telepon maksimal 255 karakter.',
 
-            'category_id.required' =>
+            'kode_kategori.required' =>
                 'Kategori supplier wajib dipilih.',
 
-            'category_id.exists' =>
+            'kode_kategori.exists' =>
                 'Kategori supplier tidak valid.',
         ]);
 
@@ -303,7 +303,7 @@ class SupplierController extends Controller
                 'kode_supplier' => $newKodeSupplier,
                 'name' => $name,
                 'phone' => $phone !== '' ? $phone : null,
-                'category_id' => $validated['category_id'],
+                'kode_kategori' => $validated['kode_kategori'],
             ]);
         } catch (QueryException $exception) {
             report($exception);

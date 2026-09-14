@@ -44,6 +44,30 @@
 
 </div>
 
+{{-- Alert Banner jika ada Stok Menipis --}}
+@if($lowStockCount > 0)
+<div class="bg-red-50 border-l-4 border-red-500 rounded-xl p-4 mb-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="flex items-start sm:items-center gap-3">
+        <span class="text-2xl">⚠️</span>
+        <div>
+            <p class="font-bold text-red-800 text-sm">
+                Perhatian: Ada {{ $lowStockCount }} produk dengan stok menipis (di bawah batas minimum)!
+            </p>
+            <p class="text-xs text-red-600 mt-0.5">
+                Segera buat Purchase Order (PO) ke supplier agar ketersediaan produk di toko tetap terjaga.
+            </p>
+        </div>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+        <a href="{{ route('purchase-orders.create') }}"
+           class="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow-sm transition">
+            <span>🛒</span>
+            <span>Buat PO Sekarang</span>
+        </a>
+    </div>
+</div>
+@endif
+
 {{-- Tabel --}}
 <div class="bg-white rounded-xl shadow"
      x-data="{ search: '', selectedCategory: '', selectedStatus: '' }">
@@ -55,11 +79,13 @@
                 <h3 class="font-semibold text-gray-800">Detail Stok Produk</h3>
                 <p class="text-gray-500 text-sm mt-0.5">Diurutkan: stok menipis duluan</p>
             </div>
-            <a href="{{ route('reports.stock.excel') }}"
-               class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white
-                      px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
-                📊 Export Excel
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('reports.stock.excel') }}"
+                   class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white
+                          px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap shadow-sm">
+                    📊 Export Excel
+                </a>
+            </div>
         </div>
 
         {{-- Filter & Search --}}
@@ -113,21 +139,25 @@
                     <th class="text-right px-5 py-3 font-medium">Harga Beli</th>
                     <th class="text-right px-5 py-3 font-medium">Harga Jual</th>
                     <th class="text-center px-5 py-3 font-medium">Status</th>
+                    <th class="text-center px-5 py-3 font-medium">Aksi</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100" id="table-body">
                 @forelse($products as $index => $product)
                 <tr class="hover:bg-gray-50 transition product-row
-                           {{ $product->stok_menipis ? 'bg-red-50/30' : '' }}"
+                           {{ $product->stok_menipis ? 'bg-red-50/70 border-l-4 border-l-red-500' : '' }}"
                     data-name="{{ strtolower($product->name) }}"
                     data-category="{{ $product->category->name ?? '-' }}"
                     data-status="{{ $product->stok_menipis ? 'menipis' : 'aman' }}">
                     <td class="px-5 py-3 text-gray-500 row-number">{{ $index + 1 }}</td>
                     <td class="px-5 py-3">
                         <p class="font-medium text-gray-800">{{ $product->name }}</p>
-                        <p class="text-xs text-gray-400">
+                        <p class="text-xs text-gray-400 mt-0.5">
                             {{ $product->kode_produk }}
                             · {{ $product->items_per_package }} {{ $product->base_unit }}/Package
+                            @if($product->supplier)
+                                · <span class="text-blue-600 font-medium">Supplier: {{ $product->supplier->name }}</span>
+                            @endif
                         </p>
                     </td>
                     <td class="px-5 py-3">
@@ -137,12 +167,17 @@
                     </td>
                     <td class="px-5 py-3 text-gray-600">{{ $product->base_unit }}</td>
                     <td class="px-5 py-3 text-center">
-                        <span class="font-bold text-lg
-                            {{ $product->stok_menipis ? 'text-red-600' : 'text-gray-800' }}">
-                            {{ $product->stock }}
-                        </span>
+                        @if($product->stok_menipis)
+                            <span class="font-bold text-lg text-red-600 bg-red-100/90 px-2.5 py-0.5 rounded-lg inline-block shadow-sm">
+                                {{ $product->stock }}
+                            </span>
+                        @else
+                            <span class="font-bold text-lg text-gray-800">
+                                {{ $product->stock }}
+                            </span>
+                        @endif
                     </td>
-                    <td class="px-5 py-3 text-center text-gray-500">
+                    <td class="px-5 py-3 text-center text-gray-700 font-medium">
                         {{ $product->minimum_stock }}
                     </td>
                     <td class="px-5 py-3 text-right text-gray-600">
@@ -153,7 +188,7 @@
                     </td>
                     <td class="px-5 py-3 text-center">
                         @if($product->stok_menipis)
-                        <span class="bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-semibold">
+                        <span class="bg-red-100 text-red-700 border border-red-200 text-xs px-2.5 py-1 rounded-full font-bold inline-flex items-center gap-1">
                             ⚠️ Menipis
                         </span>
                         @else
@@ -162,10 +197,23 @@
                         </span>
                         @endif
                     </td>
+                    <td class="px-5 py-3 text-center whitespace-nowrap">
+                        @if($product->stok_menipis)
+                            <a href="{{ route('purchase-orders.create', ['product' => $product->kode_produk]) }}"
+                               class="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+                                Pesan Langsung
+                            </a>
+                        @else
+                            <a href="{{ route('purchase-orders.create', ['product' => $product->kode_produk]) }}"
+                               class="inline-flex items-center gap-1 bg-gray-100 hover:bg-blue-50 text-gray-700 hover:text-blue-700 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+                                🛒 Pesan PO
+                            </a>
+                        @endif
+                    </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="text-center py-12 text-gray-400">
+                    <td colspan="10" class="text-center py-12 text-gray-400">
                         <div class="text-4xl mb-2">📦</div>
                         <p>Belum ada produk</p>
                     </td>

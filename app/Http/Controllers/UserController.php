@@ -121,7 +121,7 @@ class UserController extends Controller
                 'string',
                 'max:255',
                 Rule::unique('users', 'username')
-                    ->ignore($user->id),
+                    ->ignore($user->username, 'username'),
             ],
 
             'password' => [
@@ -198,7 +198,7 @@ class UserController extends Controller
         | Cegah pengguna menghapus akun sendiri
         |--------------------------------------------------------------------------
         */
-        if ((int) $user->id === (int) auth()->id()) {
+        if ($user->username === auth()->user()->username) {
             return redirect()
                 ->route('users.index')
                 ->with(

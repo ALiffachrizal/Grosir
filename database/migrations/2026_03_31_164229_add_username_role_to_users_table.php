@@ -9,12 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Hapus kolom yang tidak dipakai
-            $table->dropColumn(['name', 'email', 'email_verified_at']);
-
-            // Tambah kolom username & role
-            $table->string('username')->unique()->after('id');
-            $table->enum('role', ['admin', 'cashier', 'warehouse'])->default('cashier')->after('password');
+            if (Schema::hasColumn('users', 'id')) {
+                $table->dropColumn('id');
+            }
+            if (Schema::hasColumn('users', 'name')) {
+                $table->dropColumn(['name', 'email', 'email_verified_at']);
+            }
+            if (!Schema::hasColumn('users', 'username')) {
+                $table->string('username', 255)->primary();
+            }
+            if (!Schema::hasColumn('users', 'role')) {
+                $table->enum('role', ['admin', 'cashier', 'warehouse'])->default('cashier');
+            }
         });
     }
 

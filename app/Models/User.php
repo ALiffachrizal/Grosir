@@ -11,6 +11,10 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    protected $primaryKey = 'username';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'username',
         'password',
@@ -36,7 +40,7 @@ class User extends Authenticatable
      */
     public function purchaseOrders(): HasMany
     {
-        return $this->hasMany(PurchaseOrder::class);
+        return $this->hasMany(PurchaseOrder::class, 'username', 'username');
     }
 
     /**
@@ -44,7 +48,7 @@ class User extends Authenticatable
      */
     public function sales(): HasMany
     {
-        return $this->hasMany(Sale::class);
+        return $this->hasMany(Sale::class, 'username', 'username');
     }
 
     /**
@@ -52,7 +56,7 @@ class User extends Authenticatable
      */
     public function refunds(): HasMany
     {
-        return $this->hasMany(Refund::class);
+        return $this->hasMany(Refund::class, 'username', 'username');
     }
 
     /**
@@ -60,7 +64,15 @@ class User extends Authenticatable
      */
     public function stockLogs(): HasMany
     {
-        return $this->hasMany(StockLog::class);
+        return $this->hasMany(StockLog::class, 'username', 'username');
+    }
+
+    /**
+     * User memiliki banyak draft penjualan
+     */
+    public function draftSales(): HasMany
+    {
+        return $this->hasMany(DraftSale::class, 'username', 'username');
     }
 
     // ==================== ACCESSOR ====================

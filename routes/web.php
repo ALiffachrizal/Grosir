@@ -42,7 +42,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reports/sales/export-excel', [ReportController::class, 'exportSalesExcel'])->name('reports.sales.excel');
     });
 
-    // ===== ADMIN & WAREHOUSE =====
+    // ===== ADMIN =====
     Route::middleware('role:admin,warehouse')->group(function () {
 
         // Pemesanan & Penerimaan
@@ -57,6 +57,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/stock-logs', [StockLogController::class, 'index'])->name('stock-logs.index');
         Route::get('/reports/stock', [ReportController::class, 'stock'])->name('reports.stock');
         Route::get('/reports/stock/export-excel', [ReportController::class, 'exportStockExcel'])->name('reports.stock.excel');
+
+        // Laporan purchase order
+        Route::get('/reports/purchase-orders', [ReportController::class, 'purchaseOrders'])->name('reports.purchase-orders');
+        Route::get('/reports/purchase-orders/export-pdf', [ReportController::class, 'exportPurchaseOrdersPdf'])->name('reports.purchase-orders.pdf');
+        Route::get('/reports/purchase-orders/export-excel', [ReportController::class, 'exportPurchaseOrdersExcel'])->name('reports.purchase-orders.excel');
     });
 
     // ===== ADMIN & CASHIER =====

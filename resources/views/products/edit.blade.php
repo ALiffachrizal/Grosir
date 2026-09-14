@@ -33,17 +33,17 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         Kategori <span class="text-red-500">*</span>
                     </label>
-                    <select name="category_id"
+                    <select name="kode_kategori"
                             class="w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
-                                {{ $errors->has('category_id') ? 'border-red-400' : 'border-gray-300' }}">
+                                {{ $errors->has('kode_kategori') ? 'border-red-400' : 'border-gray-300' }}">
                         <option value="">-- Pilih Kategori --</option>
                         @foreach($productCategories as $cat)
-                            <option value="{{ $cat->id }}" {{ old('category_id', $product->category_id) == $cat->id ? 'selected' : '' }}>
+                            <option value="{{ $cat->kode_kategori }}" {{ old('kode_kategori', $product->kode_kategori) == $cat->kode_kategori ? 'selected' : '' }}>
                                 {{ $cat->name }}
                             </option>
                         @endforeach
                     </select>
-                    @error('category_id')
+                    @error('kode_kategori')
                         <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
                 </div>
@@ -156,6 +156,57 @@
                     @error('selling_price')
                     <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
+                </div>
+
+                {{-- Promo / Bonus Penjualan (Beli X Gratis Y) --}}
+                <div x-data="{ minQty: {{ old('promo_min_qty', $product->promo_min_qty ?? 0) }}, bonusQty: {{ old('promo_bonus_qty', $product->promo_bonus_qty ?? 0) }} }"
+                     class="sm:col-span-2 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200 rounded-xl p-4 space-y-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-base font-bold shrink-0">
+                            🎁
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-gray-800">Promo / Bonus Penjualan (Opsional)</h4>
+                            <p class="text-xs text-gray-500">Atur skema bonus "Beli X Gratis Y" (misal: Beli 10 Gratis 1). Berlaku kelipatan saat kasir.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                Minimal Beli (Unit)
+                            </label>
+                            <input type="number" name="promo_min_qty" x-model.number="minQty"
+                                   min="0" onfocus="this.select()"
+                                   class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 {{ $errors->has('promo_min_qty') ? 'border-red-400' : '' }}"
+                                   placeholder="0">
+                            <p class="text-[11px] text-gray-400 mt-1">Kosongkan atau isi 0 jika tidak ada promo</p>
+                            @error('promo_min_qty')
+                            <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">
+                                Gratis Bonus (Unit)
+                            </label>
+                            <input type="number" name="promo_bonus_qty" x-model.number="bonusQty"
+                                   min="0" onfocus="this.select()"
+                                   class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 {{ $errors->has('promo_bonus_qty') ? 'border-red-400' : '' }}"
+                                   placeholder="0">
+                            <p class="text-[11px] text-gray-400 mt-1">Jumlah gratis yang didapat pembeli per kelipatan</p>
+                            @error('promo_bonus_qty')
+                            <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    {{-- Live Preview --}}
+                    <div x-show="minQty > 0 && bonusQty > 0"
+                         class="bg-white/80 border border-amber-200/80 rounded-lg px-3 py-2 text-xs text-amber-800 flex items-center gap-2">
+                        <span class="font-bold">✨ Skema Aktif:</span>
+                        <span>Setiap beli <strong x-text="minQty"></strong> unit, pelanggan gratis <strong x-text="bonusQty"></strong> unit bonus (bayar <span x-text="minQty"></span>, bawa pulang <span x-text="Number(minQty) + Number(bonusQty)"></span> unit).</span>
+                    </div>
                 </div>
 
             </div>

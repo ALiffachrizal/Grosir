@@ -9,8 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('categories', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('kode_kategori', 10)->unique()->nullable();
+            $table->string('kode_kategori', 10)->primary();
             $table->string('name');
             $table->enum('type', ['product', 'supplier', 'unit']); // tambah unit
             $table->timestamps();

@@ -2,14 +2,16 @@
 
 @section('title', 'Buat Purchase Order')
 @section('page-title', 'Buat Purchase Order')
-@section('page-subtitle', 'Buat pesanan barang baru')
+@section('page-subtitle', 'Pemesanan barang ke supplier dengan validasi batas minimal stok')
 
 @section('content')
 
 <div
-    class="bg-white rounded-xl shadow p-5"
-    x-data="purchaseOrder(@js($suppliers), @js($products))"
+    class="space-y-6"
+    x-data="purchaseOrderApp(@js($suppliers), @js($products), @js($prefillProduct), @js($prefillSupplier))"
+    x-init="init()"
 >
+    {{-- Form Utama --}}
     <form
         action="{{ route('purchase-orders.store') }}"
         method="POST"
@@ -17,696 +19,448 @@
     >
         @csrf
 
-        {{-- ========================================================= --}}
-        {{-- DATA UTAMA PURCHASE ORDER --}}
-        {{-- ========================================================= --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+        {{-- Hidden input container untuk submit array produk --}}
+        <div id="hidden-inputs"></div>
 
-            {{-- Supplier --}}
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    Supplier <span class="text-red-500">*</span>
-                </label>
+        {{-- Header Form: Supplier & Tanggal Order --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {{-- Supplier --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Pilih Supplier <span class="text-red-500">*</span>
+                    </label>
 
-                <select
-                    name="kode_supplier"
-                    x-model="selectedSupplierId"
-                    @change="filterProducts()"
-                    class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm
-                           bg-white focus:outline-none focus:ring-2
-                           focus:ring-blue-500 focus:border-transparent"
-                >
-                    <option value="">-- Pilih Supplier --</option>
+                    <select
+                        name="kode_supplier"
+                        x-model="selectedSupplierId"
+                        @change="onSupplierChange()"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">-- Pilih Supplier --</option>
+                        @foreach($suppliers as $supplier)
+                            <option
+                                value="{{ $supplier->kode_supplier }}"
+                                {{ old('kode_supplier', $prefillSupplier?->kode_supplier) === $supplier->kode_supplier ? 'selected' : '' }}
+                            >
+                                {{ $supplier->name }} (Kategori: {{ $supplier->category->name ?? '-' }})
+                            </option>
+                        @endforeach
+                    </select>
 
-                    @foreach($suppliers as $supplier)
-                        <option
-                            value="{{ $supplier->kode_supplier }}"
-                            {{ old('kode_supplier') === $supplier->kode_supplier ? 'selected' : '' }}
-                        >
-                            {{ $supplier->name }}
-                            ({{ $supplier->category->name ?? '-' }})
-                        </option>
-                    @endforeach
-                </select>
+                    @error('kode_supplier')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
 
-                @error('kode_supplier')
-                    <p class="mt-1 text-xs text-red-500">
-                        {{ $message }}
-                    </p>
-                @enderror
-            </div>
+                    {{-- Info Kategori Supplier Terpilih --}}
+                    <div x-show="currentSupplier" x-cloak class="mt-2 text-xs text-gray-500 flex items-center gap-2">
+                        <span>📦 Kategori: <strong class="text-gray-800" x-text="currentSupplier?.category?.name || '-'"></strong></span>
+                        <span>•</span>
+                        <span>📞 Telp: <strong class="text-gray-800" x-text="currentSupplier?.phone || '-'"></strong></span>
+                    </div>
+                </div>
 
-            {{-- Tanggal Order --}}
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    Tanggal Order <span class="text-red-500">*</span>
-                </label>
+                {{-- Tanggal Order --}}
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Tanggal Order <span class="text-red-500">*</span>
+                    </label>
 
-                <input
-                    type="date"
-                    name="order_date"
-                    value="{{ old('order_date', date('Y-m-d')) }}"
-                    class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm
-                           bg-white focus:outline-none focus:ring-2
-                           focus:ring-blue-500 focus:border-transparent"
-                >
+                    <input
+                        type="date"
+                        name="order_date"
+                        x-model="orderDate"
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
 
-                @error('order_date')
-                    <p class="mt-1 text-xs text-red-500">
-                        {{ $message }}
-                    </p>
-                @enderror
+                    @error('order_date')
+                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                    @enderror
+
+                    <p class="mt-2 text-xs text-gray-400">Tanggal pengajuan pemesanan barang</p>
+                </div>
             </div>
         </div>
 
-        {{-- ========================================================= --}}
-        {{-- INFORMASI SUPPLIER DAN PRODUK --}}
-        {{-- ========================================================= --}}
+        {{-- Alert Error Server-Side jika ada --}}
+        @if($errors->has('products') || $errors->has('products.*') || $errors->has('products.*.quantity'))
+            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+                <div class="flex items-start gap-3">
+                    <span class="text-xl">⚠️</span>
+                    <div>
+                        <p class="font-bold text-sm">Pesanan belum memenuhi syarat:</p>
+                        <ul class="mt-1 list-disc list-inside text-xs space-y-1">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        @endif
 
-        {{-- Supplier belum dipilih --}}
+        {{-- Status Sebelum Supplier Dipilih --}}
         <div
             x-show="!selectedSupplierId"
             x-cloak
-            class="flex items-start gap-3 bg-yellow-50 border border-yellow-200
-                   rounded-xl px-4 py-3 text-sm text-yellow-700 mb-5"
+            class="bg-yellow-50 border border-yellow-200 rounded-2xl p-8 text-center text-yellow-800 my-6"
         >
-            <span class="text-lg">⚠️</span>
-
-            <div>
-                <p class="font-semibold">
-                    Supplier belum dipilih
-                </p>
-
-                <p class="text-xs mt-0.5">
-                    Pilih supplier terlebih dahulu agar produk sesuai kategori
-                    supplier dapat ditampilkan.
-                </p>
-            </div>
-        </div>
-
-        {{-- Produk tidak ditemukan --}}
-        <div
-            x-show="selectedSupplierId && filteredProducts.length === 0"
-            x-cloak
-            class="flex items-start gap-3 bg-red-50 border border-red-200
-                   rounded-xl px-4 py-3 text-sm text-red-700 mb-5"
-        >
-            <span class="text-lg">⚠️</span>
-
-            <div>
-                <p class="font-semibold">
-                    Produk kategori
-                    <span x-text="selectedCategory"></span>
-                    belum tersedia.
-                </p>
-
-                <p class="text-xs mt-0.5">
-                    Tambahkan produk dengan kategori tersebut melalui menu
-
-                    <a
-                        href="{{ route('products.create') }}"
-                        class="underline font-semibold"
-                    >
-                        Kelola Produk
-                    </a>.
-                </p>
-            </div>
-        </div>
-
-        {{-- Produk ditemukan --}}
-        <div
-            x-show="selectedSupplierId && filteredProducts.length > 0"
-            x-cloak
-            class="flex items-center gap-3 bg-green-50 border border-green-200
-                   rounded-xl px-4 py-3 text-sm text-green-700 mb-5"
-        >
-            <span class="text-lg">✅</span>
-
-            <p>
-                Menampilkan produk kategori
-
-                <strong x-text="selectedCategory"></strong>
-
-                —
-
-                <strong x-text="filteredProducts.length"></strong>
-
-                produk tersedia.
+            <div class="text-4xl mb-2">🏢</div>
+            <h4 class="font-bold text-base">Silakan Pilih Supplier Terlebih Dahulu</h4>
+            <p class="text-xs text-yellow-700 mt-1 max-w-md mx-auto">
+                Setelah memilih supplier, sistem akan otomatis menampilkan katalog produk yang sesuai dengan kategori supplier tersebut.
             </p>
         </div>
 
-        {{-- ========================================================= --}}
-        {{-- DAFTAR PRODUK --}}
-        {{-- ========================================================= --}}
-        <div
-            x-show="selectedSupplierId && filteredProducts.length > 0"
-            x-cloak
-            class="mb-5"
-        >
-            {{-- Header --}}
-            <div class="flex flex-col sm:flex-row sm:items-center
-                        justify-between gap-3 mb-4">
+        {{-- Workspace Pemesanan (Tampil jika Supplier sudah dipilih) --}}
+        <div x-show="selectedSupplierId" x-cloak class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-800">
-                        Daftar Produk
-                    </h3>
+            {{-- PANEL KIRI: KATALOG & PENCARIAN PRODUK CEPAT (col 5) --}}
+            <div class="lg:col-span-5 space-y-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-sm">Pilih Produk Supplier</h3>
+                            <p class="text-xs text-gray-400 mt-0.5">
+                                Kategori: <span class="font-semibold text-blue-600" x-text="currentSupplier?.category?.name || '-'"></span>
+                            </p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700" x-text="supplierProducts.length + ' produk'"></span>
+                    </div>
 
-                    <p class="text-xs text-gray-500 mt-0.5">
-                        Pilih produk dan masukkan jumlah package, bundle,
-                        atau satuan.
-                    </p>
-                </div>
-
-                <button
-                    type="button"
-                    @click="addRow()"
-                    class="inline-flex items-center justify-center gap-2
-                           bg-green-600 hover:bg-green-700 text-white
-                           px-4 py-2.5 rounded-xl text-sm font-semibold
-                           transition shadow-sm"
-                >
-                    <span class="text-lg leading-none">+</span>
-                    Tambah Produk
-                </button>
-            </div>
-
-            {{-- Daftar kartu --}}
-            <div class="space-y-4">
-
-                <template
-                    x-for="(row, index) in rows"
-                    :key="row.row_id"
-                >
-                    <div
-                        class="border border-gray-200 rounded-2xl
-                               overflow-hidden bg-white shadow-sm"
-                    >
-                        {{-- Header kartu --}}
-                        <div class="flex items-center justify-between
-                                    bg-gray-50 border-b border-gray-200
-                                    px-4 py-2.5">
-
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="w-8 h-8 rounded-full bg-blue-100
-                                           text-blue-700 flex items-center
-                                           justify-center text-sm font-bold"
-                                    x-text="index + 1"
-                                ></div>
-
+                    {{-- Tombol Aksi Cepat: Pesan Semua Stok Menipis --}}
+                    <template x-if="lowStockSupplierProducts.length > 0">
+                        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+                            <div class="flex items-center justify-between gap-2">
                                 <div>
-                                    <p class="text-sm font-semibold text-gray-800">
-                                        Produk Pesanan
-                                        <span x-text="index + 1"></span>
+                                    <p class="text-xs font-bold text-red-800">
+                                        ⚠️ Ada <span x-text="lowStockSupplierProducts.length"></span> produk stok menipis!
                                     </p>
-
-                                    <p
-                                        x-show="row.kode_produk"
-                                        class="text-xs text-gray-500"
-                                    >
-                                        Stok tersedia:
-
-                                        <strong
-                                            x-text="row.current_stock + ' ' + row.base_unit"
-                                        ></strong>
+                                    <p class="text-[11px] text-red-600 mt-0.5">
+                                        Perlu segera dipesan ke supplier ini.
                                     </p>
                                 </div>
+                                <button
+                                    type="button"
+                                    @click="addAllLowStock()"
+                                    class="shrink-0 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition inline-flex items-center gap-1"
+                                >
+                                    <span>Pesan Semua</span>
+                                </button>
                             </div>
+                        </div>
+                    </template>
 
+                    {{-- Filter & Pencarian Cepat --}}
+                    <div class="space-y-2 mb-3">
+                        <input
+                            type="text"
+                            x-model="productSearch"
+                            placeholder="🔍 Cari nama atau kode produk..."
+                            class="w-full px-3.5 py-2 border border-gray-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 bg-white"
+                        >
+
+                        <div class="flex gap-2">
                             <button
                                 type="button"
-                                @click="removeRow(index)"
-                                x-show="rows.length > 1"
-                                class="inline-flex items-center gap-1.5
-                                       bg-red-50 hover:bg-red-100
-                                       text-red-600 px-3 py-1.5
-                                       rounded-lg text-xs font-medium transition"
+                                @click="productFilter = 'all'"
+                                :class="productFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                                class="flex-1 py-1.5 rounded-lg text-xs font-semibold transition text-center"
                             >
-                                🗑️ Hapus
+                                Semua (<span x-text="supplierProducts.length"></span>)
+                            </button>
+                            <button
+                                type="button"
+                                @click="productFilter = 'low_stock'"
+                                :class="productFilter === 'low_stock' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'"
+                                class="flex-1 py-1.5 rounded-lg text-xs font-semibold transition text-center"
+                            >
+                                ⚠️ Menipis (<span x-text="lowStockSupplierProducts.length"></span>)
                             </button>
                         </div>
+                    </div>
 
-                        {{-- Isi kartu --}}
-                        <div class="p-4">
+                    {{-- Daftar Produk Tersedia --}}
+                    <div class="divide-y divide-gray-100 max-h-[520px] overflow-y-auto pr-1">
+                        <template x-for="product in filteredCatalog" :key="product.kode_produk">
+                            <div class="py-3 flex items-center justify-between gap-3 hover:bg-gray-50/80 px-2 rounded-xl transition">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <p class="text-xs font-bold text-gray-800 truncate" x-text="product.name"></p>
+                                    </div>
 
-                            {{-- Pilih produk --}}
-                            <div class="mb-4">
-                                <label
-                                    class="block text-sm font-semibold
-                                           text-gray-700 mb-2"
-                                >
-                                    Pilih Produk
-                                    <span class="text-red-500">*</span>
-                                </label>
+                                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px]">
+                                        {{-- Indikator Stok Saat Ini (Warna Merah jika Menipis) --}}
+                                        <template x-if="Number(product.stock) <= Number(product.minimum_stock)">
+                                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-100 text-red-700 font-bold border border-red-200">
+                                                ⚠️ Stok: <span x-text="product.stock + ' ' + product.base_unit"></span> (Menipis)
+                                            </span>
+                                        </template>
+                                        <template x-if="Number(product.stock) > Number(product.minimum_stock)">
+                                            <span class="text-gray-500">
+                                                Stok: <strong class="text-gray-700" x-text="product.stock + ' ' + product.base_unit"></strong>
+                                            </span>
+                                        </template>
 
-                                <select
-                                    x-model="row.kode_produk"
-                                    @change="onProductChange(index)"
-                                    class="w-full px-4 py-2.5 border
-                                           border-gray-300 rounded-xl text-sm
-                                           bg-white focus:outline-none
-                                           focus:ring-2 focus:ring-blue-500
-                                           focus:border-transparent"
-                                >
-                                    <option value="">
-                                        -- Pilih Produk --
-                                    </option>
+                                        {{-- Informasi Minimal Stok --}}
+                                        <span class="text-gray-400">•</span>
+                                        <span class="text-gray-600">
+                                            Min. Stok: <strong class="text-gray-800" x-text="product.minimum_stock + ' ' + product.base_unit"></strong>
+                                        </span>
+                                    </div>
 
-                                    <template
-                                        x-for="product in availableProducts(index)"
-                                        :key="product.kode_produk"
-                                    >
-                                        <option
-                                            :value="product.kode_produk"
-                                            x-text="
-                                                product.name +
-                                                ' — Stok: ' +
-                                                product.stock +
-                                                ' ' +
-                                                product.base_unit
-                                            "
-                                        ></option>
+                                    <p class="text-[11px] text-gray-400 mt-0.5">
+                                        Harga Beli: <span class="font-medium text-gray-700" x-text="formatRupiah(product.purchase_price)"></span>
+                                    </p>
+                                </div>
+
+                                {{-- Tombol Tambah ke PO --}}
+                                <div class="shrink-0">
+                                    <template x-if="!isItemInOrder(product.kode_produk)">
+                                        <button
+                                            type="button"
+                                            @click="addItem(product)"
+                                            class="inline-flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm transition"
+                                        >
+                                            <span>+</span>
+                                            <span>Pesan</span>
+                                        </button>
                                     </template>
-                                </select>
+                                    <template x-if="isItemInOrder(product.kode_produk)">
+                                        <span class="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-lg">
+                                            ✓ Dipesan
+                                        </span>
+                                    </template>
+                                </div>
                             </div>
+                        </template>
 
-                            {{-- Kontrol jumlah --}}
+                        <template x-if="filteredCatalog.length === 0">
+                            <div class="py-8 text-center text-gray-400 text-xs">
+                                <span class="text-2xl block mb-1">🔍</span>
+                                Tidak ada produk yang sesuai kriteria pencarian.
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PANEL KANAN: DAFTAR PESANAN PO / KERANJANG (col 7) --}}
+            <div class="lg:col-span-7 space-y-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-base">Daftar Produk yang Dipesan</h3>
+                            <p class="text-xs text-gray-400 mt-0.5">
+                                Aturan: Jumlah pesanan setiap produk harus memenuhi batas minimal stok.
+                            </p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-600 text-white" x-text="items.length + ' Produk'"></span>
+                    </div>
+
+                    {{-- Empty State jika belum ada produk di PO --}}
+                    <div x-show="items.length === 0" class="py-12 text-center text-gray-400">
+                        <div class="text-4xl mb-2">🛒</div>
+                        <h4 class="font-semibold text-gray-700 text-sm">Belum Ada Produk Dipilih</h4>
+                        <p class="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+                            Pilih produk dari daftar di sebelah kiri dengan mengklik tombol <strong>"+ Pesan"</strong> atau gunakan <strong>"Pesan Semua"</strong> untuk stok menipis.
+                        </p>
+                    </div>
+
+                    {{-- Daftar Item yang Dipesan --}}
+                    <div x-show="items.length > 0" class="space-y-4">
+                        <template x-for="(item, index) in items" :key="item.kode_produk">
                             <div
-                                x-show="row.kode_produk"
-                                x-cloak
-                                class="grid grid-cols-1 sm:grid-cols-2
-                                       lg:grid-cols-4 gap-3"
+                                class="rounded-2xl border p-4 transition"
+                                :class="isInvalidQuantity(item) ? 'border-red-400 bg-red-50/30' : 'border-gray-200 bg-white hover:border-gray-300'"
                             >
-                                {{-- Package --}}
-                                <div class="bg-gray-50 border border-gray-200
-                                            rounded-xl p-3">
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5" x-text="index + 1"></div>
+                                        <div>
+                                            <h4 class="text-sm font-bold text-gray-800" x-text="item.name"></h4>
+                                            <div class="flex flex-wrap items-center gap-2 text-xs mt-0.5">
+                                                {{-- Stok saat ini --}}
+                                                <template x-if="Number(item.stock) <= Number(item.minimum_stock)">
+                                                    <span class="text-red-600 font-bold bg-red-100 px-1.5 py-0.5 rounded text-[11px]">
+                                                        ⚠️ Stok Saat Ini: <span x-text="item.stock + ' ' + item.base_unit"></span> (Menipis)
+                                                    </span>
+                                                </template>
+                                                <template x-if="Number(item.stock) > Number(item.minimum_stock)">
+                                                    <span class="text-gray-500 text-[11px]">
+                                                        Stok Saat Ini: <span class="font-semibold text-gray-700" x-text="item.stock + ' ' + item.base_unit"></span>
+                                                    </span>
+                                                </template>
 
-                                    <div class="flex items-center justify-between mb-2">
-                                        <p class="text-xs font-semibold
-                                                  text-gray-600 uppercase">
-                                            Package
-                                        </p>
-
-                                        <span class="text-xs text-gray-400">
-                                            <span x-text="row.items_per_package"></span>
-                                            <span x-text="row.base_unit"></span>
-                                        </span>
+                                                {{-- Batas Minimal Stok --}}
+                                                <span class="text-gray-400">•</span>
+                                                <span class="text-gray-600 text-[11px]">
+                                                    Min. Stok: <strong class="text-gray-800" x-text="item.minimum_stock + ' ' + item.base_unit"></strong>
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div class="flex items-center justify-between
-                                                bg-white border border-gray-200
-                                                rounded-lg p-1">
-
-                                        <button
-                                            type="button"
-                                            @click="
-                                                row.package = Math.max(
-                                                    0,
-                                                    Number(row.package || 0) - 1
-                                                );
-
-                                                calculateTotal(index);
-                                            "
-                                            :disabled="row.package <= 0"
-                                            class="w-9 h-9 rounded-md bg-gray-100
-                                                   hover:bg-red-50 text-gray-600
-                                                   hover:text-red-600 font-bold
-                                                   disabled:opacity-40
-                                                   disabled:cursor-not-allowed
-                                                   transition"
-                                        >
-                                            −
-                                        </button>
-
-                                        <span
-                                            class="text-base font-bold text-gray-800"
-                                            x-text="row.package"
-                                        ></span>
-
-                                        <button
-                                            type="button"
-                                            @click="
-                                                row.package =
-                                                    Number(row.package || 0) + 1;
-
-                                                calculateTotal(index);
-                                            "
-                                            class="w-9 h-9 rounded-md bg-blue-600
-                                                   hover:bg-blue-700 text-white
-                                                   font-bold transition"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-
-                                    <p class="text-[11px] text-gray-400
-                                              text-center mt-2">
-                                        1
-                                        <span
-                                            x-text="row.package_label || 'Package'"
-                                        ></span>
-
-                                        =
-
-                                        <span x-text="row.items_per_package"></span>
-
-                                        <span x-text="row.base_unit"></span>
-                                    </p>
+                                    {{-- Tombol Hapus --}}
+                                    <button
+                                        type="button"
+                                        @click="removeItem(index)"
+                                        class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg text-xs font-semibold transition"
+                                        title="Hapus dari pesanan"
+                                    >
+                                        🗑️ Hapus
+                                    </button>
                                 </div>
 
-                                {{-- Bundle --}}
-                                <div class="bg-gray-50 border border-gray-200
-                                            rounded-xl p-3">
-
-                                    <div class="flex items-center justify-between mb-2">
-                                        <p class="text-xs font-semibold
-                                                  text-gray-600 uppercase">
-                                            Bundle
-                                        </p>
-
-                                        <span class="text-xs text-gray-400">
-                                            <span x-text="row.items_per_bundle"></span>
-                                            <span x-text="row.base_unit"></span>
-                                        </span>
-                                    </div>
-
-                                    <div class="flex items-center justify-between
-                                                bg-white border border-gray-200
-                                                rounded-lg p-1">
-
-                                        <button
-                                            type="button"
-                                            @click="
-                                                row.bundle = Math.max(
-                                                    0,
-                                                    Number(row.bundle || 0) - 1
-                                                );
-
-                                                calculateTotal(index);
-                                            "
-                                            :disabled="
-                                                row.bundle <= 0 ||
-                                                row.items_per_bundle <= 1
-                                            "
-                                            class="w-9 h-9 rounded-md bg-gray-100
-                                                   hover:bg-red-50 text-gray-600
-                                                   hover:text-red-600 font-bold
-                                                   disabled:opacity-40
-                                                   disabled:cursor-not-allowed
-                                                   transition"
-                                        >
-                                            −
-                                        </button>
-
-                                        <span
-                                            class="text-base font-bold text-gray-800"
-                                            x-text="row.bundle"
-                                        ></span>
-
-                                        <button
-                                            type="button"
-                                            @click="
-                                                row.bundle =
-                                                    Number(row.bundle || 0) + 1;
-
-                                                calculateTotal(index);
-                                            "
-                                            :disabled="row.items_per_bundle <= 1"
-                                            class="w-9 h-9 rounded-md bg-blue-600
-                                                   hover:bg-blue-700 text-white
-                                                   font-bold
-                                                   disabled:bg-gray-200
-                                                   disabled:text-gray-400
-                                                   disabled:cursor-not-allowed
-                                                   transition"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-
-                                    <p class="text-[11px] text-gray-400
-                                              text-center mt-2">
-
-                                        <template x-if="row.items_per_bundle > 1">
-                                            <span>
-                                                1 Bundle =
-
-                                                <span
-                                                    x-text="row.items_per_bundle"
-                                                ></span>
-
-                                                <span
-                                                    x-text="row.base_unit"
-                                                ></span>
+                                {{-- Kontrol Kuantitas Pesanan & Pintasan --}}
+                                <div class="bg-gray-50/80 rounded-xl p-3 border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <label class="text-xs font-bold text-gray-700">
+                                                Jumlah Pesanan:
+                                            </label>
+                                            <span class="text-xs text-gray-500">
+                                                Satuan: <strong class="text-gray-800" x-text="item.base_unit"></strong>
                                             </span>
-                                        </template>
+                                        </div>
 
-                                        <template x-if="row.items_per_bundle <= 1">
+                                        {{-- Tombol - / Input Angka / Tombol + --}}
+                                        <div class="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                @click="adjustQuantity(item, -1)"
+                                                :disabled="item.quantity <= 1"
+                                                class="w-8 h-8 rounded-lg bg-white border border-gray-300 text-gray-700 font-bold hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                                            >
+                                                −
+                                            </button>
+
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                x-model.number="item.quantity"
+                                                class="w-24 text-center font-bold px-2 py-1.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                :class="isInvalidQuantity(item) ? 'border-red-500 text-red-600 bg-red-50' : 'border-gray-300 text-gray-800'"
+                                            >
+
+                                            <button
+                                                type="button"
+                                                @click="adjustQuantity(item, 1)"
+                                                class="w-8 h-8 rounded-lg bg-white border border-gray-300 text-gray-700 font-bold hover:bg-gray-100 transition"
+                                            >
+                                                +
+                                            </button>
+
+                                            {{-- Tombol Pintasan Cepat Set Minimal Stok --}}
+                                            <button
+                                                type="button"
+                                                @click="setToMinStock(item)"
+                                                class="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition"
+                                                title="Langsung sesuaikan ke batas minimal stok"
+                                            >
+                                                Min: <span x-text="item.minimum_stock"></span>
+                                            </button>
+
+                                            {{-- Pintasan +1 Package jika ada --}}
+                                            <template x-if="item.items_per_package > 1">
+                                                <button
+                                                    type="button"
+                                                    @click="adjustQuantity(item, item.items_per_package)"
+                                                    class="text-xs font-semibold px-2 py-1.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
+                                                    :title="'Tambah 1 Paket (' + item.items_per_package + ' ' + item.base_unit + ')'"
+                                                >
+                                                    +1 Pkg (<span x-text="item.items_per_package"></span>)
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    {{-- Subtotal Biaya Per Item --}}
+                                    <div class="text-right sm:border-l sm:border-gray-200 sm:pl-4">
+                                        <p class="text-[11px] text-gray-400">Estimasi Biaya</p>
+                                        <p class="text-sm font-bold text-gray-800 mt-0.5" x-text="formatRupiah(item.quantity * item.purchase_price)"></p>
+                                        <p class="text-[10px] text-gray-400">@ <span x-text="formatRupiah(item.purchase_price)"></span> / unit</p>
+                                    </div>
+                                </div>
+
+                                {{-- Peringatan Validasi Merah Jika Jumlah Pesanan di Bawah Minimal Stok --}}
+                                <template x-if="isInvalidQuantity(item)">
+                                    <div class="mt-2.5 bg-red-100 border border-red-300 text-red-700 rounded-xl px-3 py-2 text-xs flex items-center justify-between gap-2">
+                                        <div class="flex items-center gap-1.5">
+                                            <span>⚠️</span>
                                             <span>
-                                                Tidak tersedia
+                                                Jumlah pesanan harus minimal <strong><span x-text="item.minimum_stock"></span> <span x-text="item.base_unit"></span></strong> (sesuai batas minimal stok produk).
                                             </span>
-                                        </template>
-                                    </p>
-                                </div>
-
-                                {{-- Satuan --}}
-                                <div class="bg-gray-50 border border-gray-200
-                                            rounded-xl p-3">
-
-                                    <div class="flex items-center justify-between mb-2">
-                                        <p class="text-xs font-semibold
-                                                  text-gray-600 uppercase">
-                                            Satuan
-                                        </p>
-
-                                        <span
-                                            class="text-xs text-gray-400"
-                                            x-text="row.base_unit"
-                                        ></span>
-                                    </div>
-
-                                    <div class="flex items-center justify-between
-                                                bg-white border border-gray-200
-                                                rounded-lg p-1">
-
+                                        </div>
                                         <button
                                             type="button"
-                                            @click="
-                                                row.unit = Math.max(
-                                                    0,
-                                                    Number(row.unit || 0) - 1
-                                                );
-
-                                                calculateTotal(index);
-                                            "
-                                            :disabled="row.unit <= 0"
-                                            class="w-9 h-9 rounded-md bg-gray-100
-                                                   hover:bg-red-50 text-gray-600
-                                                   hover:text-red-600 font-bold
-                                                   disabled:opacity-40
-                                                   disabled:cursor-not-allowed
-                                                   transition"
+                                            @click="setToMinStock(item)"
+                                            class="font-bold underline text-red-800 hover:text-red-900 shrink-0"
                                         >
-                                            −
-                                        </button>
-
-                                        <span
-                                            class="text-base font-bold text-gray-800"
-                                            x-text="row.unit"
-                                        ></span>
-
-                                        <button
-                                            type="button"
-                                            @click="
-                                                row.unit =
-                                                    Number(row.unit || 0) + 1;
-
-                                                calculateTotal(index);
-                                            "
-                                            class="w-9 h-9 rounded-md bg-blue-600
-                                                   hover:bg-blue-700 text-white
-                                                   font-bold transition"
-                                        >
-                                            +
+                                            Sesuaikan
                                         </button>
                                     </div>
+                                </template>
+                            </div>
+                        </template>
 
-                                    <p class="text-[11px] text-gray-400
-                                              text-center mt-2">
-                                        Jumlah dalam
-
-                                        <span x-text="row.base_unit"></span>
-                                    </p>
+                        {{-- Ringkasan Total PO --}}
+                        <div class="bg-gray-900 text-white rounded-2xl p-5 mt-6 shadow-sm">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4 border-b border-gray-800">
+                                <div>
+                                    <p class="text-xs text-gray-400">Total Jenis Produk</p>
+                                    <p class="text-lg font-bold text-white mt-0.5" x-text="items.length + ' item'"></p>
                                 </div>
-
-                                {{-- Total --}}
-                                <div class="bg-blue-600 rounded-xl p-3 text-white">
-
-                                    <div class="flex items-center justify-between mb-2">
-                                        <p class="text-xs font-semibold
-                                                  uppercase text-blue-100">
-                                            Total Unit
-                                        </p>
-
-                                        <span class="text-xs text-blue-200">
-                                            Pesanan
-                                        </span>
-                                    </div>
-
-                                    <div class="h-[43px] flex items-center
-                                                justify-center">
-
-                                        <span
-                                            class="text-2xl font-bold"
-                                            x-text="row.total"
-                                        ></span>
-
-                                        <span
-                                            class="text-sm ml-1 text-blue-100"
-                                            x-text="row.base_unit"
-                                        ></span>
-                                    </div>
-
-                                    <p class="text-[11px] text-blue-100
-                                              text-center mt-2">
-                                        Total jumlah produk
-                                    </p>
+                                <div>
+                                    <p class="text-xs text-gray-400">Total Kuantitas Pesanan</p>
+                                    <p class="text-lg font-bold text-white mt-0.5" x-text="totalOrderUnits + ' unit'"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400">Estimasi Total Biaya</p>
+                                    <p class="text-xl font-extrabold text-emerald-400 mt-0.5" x-text="formatRupiah(totalEstimatedCost)"></p>
                                 </div>
                             </div>
 
-                            {{-- Rincian perhitungan --}}
-                            <div
-                                x-show="row.kode_produk && row.total > 0"
-                                x-cloak
-                                class="mt-3 text-xs text-gray-500 bg-gray-50
-                                       border border-gray-200 rounded-lg
-                                       px-3 py-2"
-                            >
-                                Perhitungan:
+                            {{-- Info Validasi Sebelum Submit --}}
+                            <div class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <div class="text-xs">
+                                    <template x-if="hasInvalidItems">
+                                        <p class="text-red-400 font-bold flex items-center gap-1">
+                                            <span>⚠️</span> Ada produk dengan jumlah di bawah batas minimal stok!
+                                        </p>
+                                    </template>
+                                    <template x-if="!hasInvalidItems && items.length > 0">
+                                        <p class="text-green-400 font-semibold flex items-center gap-1">
+                                            <span>✅</span> Seluruh pesanan telah memenuhi batas minimal stok.
+                                        </p>
+                                    </template>
+                                </div>
 
-                                (<span x-text="row.package"></span>
-                                ×
-                                <span x-text="row.items_per_package"></span>)
+                                <div class="flex items-center gap-3 w-full sm:w-auto">
+                                    <a
+                                        href="{{ route('purchase-orders.index') }}"
+                                        class="flex-1 sm:flex-initial text-center bg-gray-800 hover:bg-gray-700 text-gray-300 px-5 py-2.5 rounded-xl text-xs font-semibold transition"
+                                    >
+                                        Batal
+                                    </a>
 
-                                +
-
-                                (<span x-text="row.bundle"></span>
-                                ×
-                                <span x-text="row.items_per_bundle"></span>)
-
-                                +
-
-                                <span x-text="row.unit"></span>
-
-                                =
-
-                                <strong
-                                    class="text-gray-800"
-                                    x-text="row.total"
-                                ></strong>
-
-                                <span x-text="row.base_unit"></span>
+                                    <button
+                                        type="submit"
+                                        :disabled="!canSubmit"
+                                        :class="canSubmit
+                                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                                            : 'bg-gray-700 text-gray-500 cursor-not-allowed opacity-60'"
+                                        class="flex-1 sm:flex-initial text-center px-6 py-2.5 rounded-xl text-xs font-bold transition"
+                                    >
+                                        Simpan Purchase Order
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </template>
-            </div>
-
-            {{-- ===================================================== --}}
-            {{-- RINGKASAN TOTAL --}}
-            {{-- ===================================================== --}}
-            <div
-                class="mt-4 flex flex-col sm:flex-row sm:items-center
-                       justify-between gap-3 bg-gray-800 text-white
-                       rounded-xl px-5 py-3.5"
-            >
-                <div>
-                    <p class="font-semibold text-sm">
-                        Ringkasan Purchase Order
-                    </p>
-
-                    <p class="text-xs text-gray-300 mt-0.5">
-                        Total dari seluruh produk yang dipesan.
-                    </p>
-                </div>
-
-                <div class="flex items-center gap-3">
-                    <span class="text-sm text-gray-300">
-                        Total Semua Produk
-                    </span>
-
-                    <div
-                        class="bg-white text-gray-900 rounded-lg
-                               px-4 py-2 min-w-[110px] text-center"
-                    >
-                        <span
-                            class="text-xl font-bold"
-                            x-text="grandTotal"
-                        ></span>
-
-                        <span class="text-xs text-gray-500">
-                            unit
-                        </span>
-                    </div>
                 </div>
             </div>
-        </div>
 
-        {{-- Hidden input --}}
-        <div id="hidden-inputs"></div>
-
-        {{-- ========================================================= --}}
-        {{-- VALIDATION ERROR --}}
-        {{-- ========================================================= --}}
-        @error('products')
-            <div class="mb-4 bg-red-50 border border-red-200
-                        rounded-xl px-4 py-3 text-sm text-red-600">
-                {{ $message }}
-            </div>
-        @enderror
-
-        @error('products.*.kode_produk')
-            <div class="mb-4 bg-red-50 border border-red-200
-                        rounded-xl px-4 py-3 text-sm text-red-600">
-                {{ $message }}
-            </div>
-        @enderror
-
-        @error('products.*.quantity')
-            <div class="mb-4 bg-red-50 border border-red-200
-                        rounded-xl px-4 py-3 text-sm text-red-600">
-                {{ $message }}
-            </div>
-        @enderror
-
-        {{-- ========================================================= --}}
-        {{-- TOMBOL AKSI --}}
-        {{-- ========================================================= --}}
-        <div class="flex flex-col sm:flex-row gap-3">
-
-            <button
-                type="submit"
-                :disabled="!canSubmit"
-                :class="
-                    canSubmit
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                "
-                class="flex-1 py-3 rounded-xl text-sm
-                       font-semibold transition"
-            >
-                Simpan Purchase Order
-            </button>
-
-            <a
-                href="{{ route('purchase-orders.index') }}"
-                class="flex-1 text-center bg-gray-100 hover:bg-gray-200
-                       text-gray-700 py-3 rounded-xl text-sm
-                       font-medium transition"
-            >
-                Batal
-            </a>
         </div>
     </form>
 </div>
@@ -715,408 +469,167 @@
 
 @push('scripts')
 <script>
-function purchaseOrder(suppliers, products) {
+function purchaseOrderApp(suppliers, products, prefillProduct, prefillSupplier) {
     return {
-        suppliers: suppliers,
-        products: products,
+        suppliers: suppliers || [],
+        products: products || [],
+        selectedSupplierId: prefillSupplier ? String(prefillSupplier.kode_supplier) : '',
+        orderDate: '{{ old("order_date", date("Y-m-d")) }}',
 
-        selectedSupplierId: '',
-        selectedCategory: '',
-        filteredProducts: [],
+        productSearch: '',
+        productFilter: 'all',
 
-        rowCounter: 1,
+        items: [],
 
-        rows: [
-            {
-                row_id: 1,
-                kode_produk: '',
-                package: 0,
-                bundle: 0,
-                unit: 0,
-                total: 0,
-                base_unit: '',
-                package_label: '',
-                items_per_package: 1,
-                items_per_bundle: 1,
-                current_stock: 0,
-            }
-        ],
+        init() {
+            if (this.selectedSupplierId) {
+                this.onSupplierChange();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Total seluruh produk
-        |--------------------------------------------------------------------------
-        */
-        get grandTotal() {
-            return this.rows.reduce((sum, row) => {
-                return sum + Number(row.total || 0);
-            }, 0);
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Form dapat disimpan
-        |--------------------------------------------------------------------------
-        */
-        get canSubmit() {
-            if (!this.selectedSupplierId) {
-                return false;
-            }
-
-            if (this.filteredProducts.length === 0) {
-                return false;
-            }
-
-            return this.rows.some(row => {
-                return row.kode_produk && Number(row.total) > 0;
-            });
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Mengambil nama kategori
-        |--------------------------------------------------------------------------
-        */
-        getCategoryName(item) {
-            if (!item) {
-                return '';
-            }
-
-            if (item.category_name) {
-                return item.category_name;
-            }
-
-            if (
-                item.category &&
-                typeof item.category === 'object'
-            ) {
-                return item.category.name || '';
-            }
-
-            if (
-                item.category &&
-                typeof item.category === 'string'
-            ) {
-                return item.category;
-            }
-
-            return '';
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Normalisasi nama kategori
-        |--------------------------------------------------------------------------
-        */
-        normalize(value) {
-            return (value || '')
-                .toString()
-                .trim()
-                .toUpperCase();
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Membuat baris kosong
-        |--------------------------------------------------------------------------
-        */
-        createEmptyRow() {
-            this.rowCounter++;
-
-            return {
-                row_id: this.rowCounter,
-                kode_produk: '',
-                package: 0,
-                bundle: 0,
-                unit: 0,
-                total: 0,
-                base_unit: '',
-                package_label: '',
-                items_per_package: 1,
-                items_per_bundle: 1,
-                current_stock: 0,
-            };
-        },
-
-        /*
-        |--------------------------------------------------------------------------
-        | Reset baris
-        |--------------------------------------------------------------------------
-        */
-        resetRows() {
-            this.rowCounter++;
-
-            this.rows = [
-                {
-                    row_id: this.rowCounter,
-                    kode_produk: '',
-                    package: 0,
-                    bundle: 0,
-                    unit: 0,
-                    total: 0,
-                    base_unit: '',
-                    package_label: '',
-                    items_per_package: 1,
-                    items_per_bundle: 1,
-                    current_stock: 0,
+                // Jika ada prefill produk (misal dari tombol Pesan Langsung di Laporan Stok)
+                if (prefillProduct) {
+                    const found = this.products.find(p => String(p.kode_produk) === String(prefillProduct.kode_produk));
+                    if (found) {
+                        this.addItem(found);
+                    }
                 }
-            ];
+            }
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | Filter produk berdasarkan kategori supplier
-        |--------------------------------------------------------------------------
-        |
-        | PENTING: produk dicocokkan ke supplier lewat category_id (relasi
-        | database yang sebenarnya), BUKAN lewat nama kategori sebagai teks.
-        |
-        | Sebelumnya sistem membandingkan nama kategori produk dengan nama
-        | kategori supplier sebagai string. Ini rawan bug: dua kategori
-        | dengan nama yang mirip tapi tidak identik (typo, beda huruf
-        | besar/kecil, atau spasi ekstra) tidak akan pernah "nyambung"
-        | walau maksud admin sebenarnya sama.
-        |
-        | Sejak kategori produk & supplier digabung jadi satu tabel yang
-        | sama (lihat migration merge_supplier_categories_into_product),
-        | produk dan supplier yang satu kategori akan selalu punya
-        | category_id yang SAMA PERSIS — jadi tidak mungkin salah connect
-        | lagi, walau nama kategorinya diketik beda.
-        */
-        filterProducts() {
-            if (!this.selectedSupplierId) {
-                this.filteredProducts = [];
-                this.selectedCategory = '';
-                this.resetRows();
-
-                return;
-            }
-
-            const supplier = this.suppliers.find(supplier => {
-                return String(supplier.kode_supplier) ===
-                    String(this.selectedSupplierId);
-            });
-
-            if (!supplier) {
-                this.filteredProducts = [];
-                this.selectedCategory = '';
-                this.resetRows();
-
-                return;
-            }
-
-            // Nama kategori tetap disimpan, tapi HANYA untuk ditampilkan
-            // di UI (misalnya teks "Menampilkan produk kategori X").
-            // Pencocokan produknya sendiri tidak lagi memakai nama ini.
-            this.selectedCategory =
-                this.getCategoryName(supplier);
-
-            this.filteredProducts =
-                this.products.filter(product => {
-                    return Number(product.category_id) ===
-                        Number(supplier.category_id);
-                });
-
-            this.resetRows();
+        get currentSupplier() {
+            return this.suppliers.find(s => String(s.kode_supplier) === String(this.selectedSupplierId));
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | Menghindari produk dipilih dua kali
-        |--------------------------------------------------------------------------
-        */
-        availableProducts(currentIndex) {
-            const selectedCodes = this.rows
-                .filter((row, index) => {
-                    return index !== currentIndex &&
-                        row.kode_produk;
-                })
-                .map(row => String(row.kode_produk));
+        get supplierProducts() {
+            if (!this.currentSupplier) return [];
+            return this.products.filter(p => String(p.kode_kategori) === String(this.currentSupplier.kode_kategori));
+        },
 
-            return this.filteredProducts.filter(product => {
-                return !selectedCodes.includes(
-                    String(product.kode_produk)
-                );
+        get lowStockSupplierProducts() {
+            return this.supplierProducts.filter(p => Number(p.stock) <= Number(p.minimum_stock));
+        },
+
+        get filteredCatalog() {
+            let list = this.supplierProducts;
+            if (this.productFilter === 'low_stock') {
+                list = list.filter(p => Number(p.stock) <= Number(p.minimum_stock));
+            }
+            if (this.productSearch.trim()) {
+                const q = this.productSearch.toLowerCase();
+                list = list.filter(p => p.name.toLowerCase().includes(q) || p.kode_produk.toLowerCase().includes(q));
+            }
+            return list;
+        },
+
+        isItemInOrder(kodeProduk) {
+            return this.items.some(item => String(item.kode_produk) === String(kodeProduk));
+        },
+
+        onSupplierChange() {
+            this.productSearch = '';
+            this.productFilter = 'all';
+
+            if (this.currentSupplier) {
+                // Pertahankan hanya item yang sesuai dengan kategori supplier ini
+                this.items = this.items.filter(item => String(item.kode_kategori) === String(this.currentSupplier.kode_kategori));
+            } else {
+                this.items = [];
+            }
+        },
+
+        addItem(product) {
+            if (this.isItemInOrder(product.kode_produk)) return;
+
+            // Default jumlah pesanan minimal = minimal_stock (atau 1 jika minimal_stock 0)
+            const minQty = Math.max(1, Number(product.minimum_stock || 1));
+
+            this.items.push({
+                kode_produk: product.kode_produk,
+                name: product.name,
+                kode_kategori: product.kode_kategori,
+                base_unit: product.base_unit || 'Unit',
+                stock: Number(product.stock || 0),
+                minimum_stock: Number(product.minimum_stock || 0),
+                purchase_price: Number(product.purchase_price || 0),
+                items_per_package: Number(product.items_per_package || 1),
+                quantity: minQty,
             });
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | Saat produk dipilih
-        |--------------------------------------------------------------------------
-        */
-        onProductChange(index) {
-            const row = this.rows[index];
+        removeItem(index) {
+            this.items.splice(index, 1);
+        },
 
-            const product = this.products.find(product => {
-                return String(product.kode_produk) ===
-                    String(row.kode_produk);
+        addAllLowStock() {
+            this.lowStockSupplierProducts.forEach(product => {
+                if (!this.isItemInOrder(product.kode_produk)) {
+                    this.addItem(product);
+                }
             });
-
-            row.package = 0;
-            row.bundle = 0;
-            row.unit = 0;
-            row.total = 0;
-
-            if (!product) {
-                row.base_unit = '';
-                row.package_label = '';
-                row.items_per_package = 1;
-                row.items_per_bundle = 1;
-                row.current_stock = 0;
-
-                return;
-            }
-
-            row.base_unit =
-                product.base_unit || 'Unit';
-
-            row.items_per_package =
-                Number(product.items_per_package || 1);
-
-            row.items_per_bundle =
-                Number(product.items_per_bundle || 1);
-
-            row.package_label =
-                product.base_unit === 'KG'
-                    ? 'Karung'
-                    : 'Package';
-
-            row.current_stock =
-                Number(product.stock || 0);
-
-            this.calculateTotal(index);
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | Menghitung jumlah unit
-        |--------------------------------------------------------------------------
-        */
-        calculateTotal(index) {
-            const row = this.rows[index];
-
-            row.package = Math.max(
-                0,
-                Number(row.package || 0)
-            );
-
-            row.bundle = Math.max(
-                0,
-                Number(row.bundle || 0)
-            );
-
-            row.unit = Math.max(
-                0,
-                Number(row.unit || 0)
-            );
-
-            const fromPackage =
-                row.package *
-                Number(row.items_per_package || 1);
-
-            const fromBundle =
-                row.bundle *
-                Number(row.items_per_bundle || 1);
-
-            const fromUnit =
-                row.unit;
-
-            row.total =
-                fromPackage +
-                fromBundle +
-                fromUnit;
+        adjustQuantity(item, delta) {
+            const next = Number(item.quantity || 0) + delta;
+            item.quantity = Math.max(1, next);
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | Menambah baris
-        |--------------------------------------------------------------------------
-        */
-        addRow() {
-            if (
-                this.rows.length >=
-                this.filteredProducts.length
-            ) {
-                alert(
-                    'Semua produk dalam kategori ini sudah dimasukkan.'
-                );
-
-                return;
-            }
-
-            this.rows.push(this.createEmptyRow());
+        setToMinStock(item) {
+            item.quantity = Math.max(1, Number(item.minimum_stock || 1));
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | Menghapus baris
-        |--------------------------------------------------------------------------
-        */
-        removeRow(index) {
-            if (this.rows.length <= 1) {
-                return;
-            }
-
-            this.rows.splice(index, 1);
+        isInvalidQuantity(item) {
+            const minAllowed = Number(item.minimum_stock || 0) > 0 ? Number(item.minimum_stock) : 1;
+            return Number(item.quantity || 0) < minAllowed;
         },
 
-        /*
-        |--------------------------------------------------------------------------
-        | Menyiapkan data sebelum dikirim
-        |--------------------------------------------------------------------------
-        */
+        get hasInvalidItems() {
+            return this.items.some(item => this.isInvalidQuantity(item));
+        },
+
+        get canSubmit() {
+            if (!this.selectedSupplierId) return false;
+            if (this.items.length === 0) return false;
+            if (this.hasInvalidItems) return false;
+            return true;
+        },
+
+        get totalOrderUnits() {
+            return this.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+        },
+
+        get totalEstimatedCost() {
+            return this.items.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.purchase_price || 0)), 0);
+        },
+
+        formatRupiah(number) {
+            return 'Rp ' + Number(number || 0).toLocaleString('id-ID');
+        },
+
         prepareSubmit(event) {
             if (!this.canSubmit) {
                 event.preventDefault();
-
-                alert(
-                    'Pilih minimal satu produk dan masukkan jumlah pesanan.'
-                );
-
+                if (this.items.length === 0) {
+                    alert('Pilih minimal satu produk untuk dipesan.');
+                } else if (this.hasInvalidItems) {
+                    alert('Jumlah pesanan untuk beberapa produk masih di bawah batas minimal stok. Mohon periksa kembali.');
+                }
                 return;
             }
 
-            const container =
-                document.getElementById('hidden-inputs');
-
+            const container = document.getElementById('hidden-inputs');
             container.innerHTML = '';
 
-            let validIndex = 0;
+            this.items.forEach((item, index) => {
+                const kodeInput = document.createElement('input');
+                kodeInput.type = 'hidden';
+                kodeInput.name = `products[${index}][kode_produk]`;
+                kodeInput.value = item.kode_produk;
+                container.appendChild(kodeInput);
 
-            this.rows.forEach(row => {
-                if (
-                    row.kode_produk &&
-                    Number(row.total) > 0
-                ) {
-                    const kodeInput =
-                        document.createElement('input');
-
-                    kodeInput.type = 'hidden';
-
-                    kodeInput.name =
-                        `products[${validIndex}][kode_produk]`;
-
-                    kodeInput.value =
-                        row.kode_produk;
-
-                    container.appendChild(kodeInput);
-
-                    const quantityInput =
-                        document.createElement('input');
-
-                    quantityInput.type = 'hidden';
-
-                    quantityInput.name =
-                        `products[${validIndex}][quantity]`;
-
-                    quantityInput.value =
-                        Number(row.total);
-
-                    container.appendChild(quantityInput);
-
-                    validIndex++;
-                }
+                const qtyInput = document.createElement('input');
+                qtyInput.type = 'hidden';
+                qtyInput.name = `products[${index}][quantity]`;
+                qtyInput.value = item.quantity;
+                container.appendChild(qtyInput);
             });
         }
     };

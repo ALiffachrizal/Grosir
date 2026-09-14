@@ -18,11 +18,11 @@
         <div class="flex gap-3">
             {{-- Filter Kategori --}}
             <form method="GET" action="{{ route('suppliers.index') }}">
-                <select name="category" onchange="this.form.submit()"
+                <select name="kode_kategori" onchange="this.form.submit()"
                         class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">Semua Kategori</option>
                     @foreach($supplierCategories as $cat)
-                    <option value="{{ $cat->name }}" {{ request('category') == $cat->name ? 'selected' : '' }}>
+                    <option value="{{ $cat->kode_kategori }}" {{ request('kode_kategori') == $cat->kode_kategori ? 'selected' : '' }}>
                         {{ $cat->name }}
                     </option>
                     @endforeach

@@ -70,12 +70,13 @@ class SaleController extends Controller
 
             $initialCart = $draftSale->details->map(function (DraftSaleDetail $detail) {
                 return [
-                    'kode_produk'   => $detail->kode_produk,
-                    'name'          => $detail->product->name ?? $detail->kode_produk,
-                    'base_unit'     => $detail->product->base_unit ?? '',
-                    'quantity'      => (int) $detail->quantity,
-                    'unit_price'    => (float) $detail->unit_price,
-                    'description'   => null,
+                    'kode_produk'    => $detail->kode_produk,
+                    'name'           => $detail->product->name ?? $detail->kode_produk,
+                    'base_unit'      => $detail->product->base_unit ?? '',
+                    'quantity'       => (int) $detail->quantity,
+                    'bonus_quantity' => (int) $detail->bonus_quantity,
+                    'unit_price'     => (float) $detail->unit_price,
+                    'description'    => null,
                 ];
             })->values();
         }
@@ -129,7 +130,7 @@ class SaleController extends Controller
 
             'items.*' => [
                 'required',
-                'array:kode_produk,quantity,unit_price,description',
+                'array:kode_produk,quantity,bonus_quantity,unit_price,description',
             ],
 
             'items.*.kode_produk' => [
@@ -144,7 +145,12 @@ class SaleController extends Controller
                 'min:1',
             ],
 
-            
+            'items.*.bonus_quantity' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
+
             'items.*.unit_price' => [
                 'nullable',
                 'numeric',
@@ -226,24 +232,17 @@ class SaleController extends Controller
         | Hitung total kebutuhan stok per produk
         |--------------------------------------------------------------------------
         */
-        $requiredStocks = $items
-            ->groupBy('kode_produk')
-            ->map(function ($productItems) {
-                return (int) $productItems->sum('quantity');
-            })
-            ->sortKeys();
-
         $draftSaleId = $validated['draft_sale_id'] ?? null;
 
         try {
             $saleId = DB::transaction(function () use (
                 $validated,
                 $items,
-                $requiredStocks,
                 $draftSaleId
             ) {
-                $productCodes = $requiredStocks
-                    ->keys()
+                $productCodes = $items
+                    ->pluck('kode_produk')
+                    ->unique()
                     ->values();
 
                 /*
@@ -260,21 +259,47 @@ class SaleController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Periksa total stok per produk
+                | Hitung bonus dan total stok fisik yang dibutuhkan per item
                 |--------------------------------------------------------------------------
                 */
-                foreach ($requiredStocks as $kodeProduk => $requiredQuantity) {
-                    $product = $products->get($kodeProduk);
+                $itemsWithBonus = $items->map(function (array $item) use ($products) {
+                    $product = $products->get($item['kode_produk']);
 
                     if (!$product) {
                         throw new DomainException(
-                            'Produk dengan kode ' .
-                            $kodeProduk .
-                            ' tidak ditemukan.'
+                            'Produk dengan kode ' . $item['kode_produk'] . ' tidak ditemukan.'
                         );
                     }
 
+                    $bonusQuantity = 0;
+                    if ($product->has_promo) {
+                        $bonusQuantity = intdiv($item['quantity'], (int) $product->promo_min_qty) * (int) $product->promo_bonus_qty;
+                    }
+
+                    $item['bonus_quantity'] = $bonusQuantity;
+                    $item['total_physical_quantity'] = $item['quantity'] + $bonusQuantity;
+
+                    return $item;
+                });
+
+                $requiredPhysicalStocks = $itemsWithBonus
+                    ->groupBy('kode_produk')
+                    ->map(function ($productItems) {
+                        return (int) $productItems->sum('total_physical_quantity');
+                    });
+
+                /*
+                |--------------------------------------------------------------------------
+                | Periksa total stok fisik per produk
+                |--------------------------------------------------------------------------
+                */
+                foreach ($requiredPhysicalStocks as $kodeProduk => $requiredQuantity) {
+                    $product = $products->get($kodeProduk);
+
                     if ((int) $product->stock < $requiredQuantity) {
+                        $bonusUnits = $itemsWithBonus->where('kode_produk', $kodeProduk)->sum('bonus_quantity');
+                        $bonusNote = $bonusUnits > 0 ? " (termasuk {$bonusUnits} bonus gratis)" : "";
+
                         throw new DomainException(
                             'Stok ' .
                             $product->name .
@@ -282,6 +307,7 @@ class SaleController extends Controller
                             $requiredQuantity .
                             ' ' .
                             $product->base_unit .
+                            $bonusNote .
                             ', sedangkan stok tersedia hanya ' .
                             $product->stock .
                             ' ' .
@@ -296,12 +322,9 @@ class SaleController extends Controller
                 | Hitung total menggunakan harga database
                 |--------------------------------------------------------------------------
                 */
-                $totalPrice = $items->sum(
+                $totalPrice = $itemsWithBonus->sum(
                     function (array $item) use ($products) {
-                        $product = $products->get(
-                            $item['kode_produk']
-                        );
-
+                        $product = $products->get($item['kode_produk']);
                         $unitPrice = (float) $product->selling_price;
 
                         return $item['quantity'] * $unitPrice;
@@ -314,7 +337,7 @@ class SaleController extends Controller
                 |--------------------------------------------------------------------------
                 */
                 $sale = Sale::create([
-                    'user_id' => auth()->id(),
+                    'username' => auth()->user()->username,
 
                     'date' => Carbon::today(),
 
@@ -329,13 +352,11 @@ class SaleController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Simpan detail, kurangi stok, dan buat stock log
+                | Simpan detail, kurangi stok (termasuk bonus), dan buat stock log
                 |--------------------------------------------------------------------------
                 */
-                foreach ($items as $item) {
-                    $product = $products->get(
-                        $item['kode_produk']
-                    );
+                foreach ($itemsWithBonus as $item) {
+                    $product = $products->get($item['kode_produk']);
 
                     /*
                      * Harga jual resmi selalu berasal dari database.
@@ -351,6 +372,9 @@ class SaleController extends Controller
                         'quantity' =>
                             $item['quantity'],
 
+                        'bonus_quantity' =>
+                            $item['bonus_quantity'],
+
                         'unit_price' =>
                             $unitPrice,
 
@@ -358,30 +382,29 @@ class SaleController extends Controller
                             $item['description'] ?: null,
                     ]);
 
-                    /*
-                     * Quantity yang dikirim POS sudah dalam jumlah satuan dasar.
-                     *
-                     * Contoh:
-                     * 2 package, isi package 12 PCS
-                     * quantity yang dikirim adalah 24 PCS.
-                     */
+                    $totalDeduct = $item['total_physical_quantity'];
+
                     $product->decrement(
                         'stock',
-                        $item['quantity']
+                        $totalDeduct
                     );
+
+                    $logNote = $item['bonus_quantity'] > 0
+                        ? 'Penjualan (' . $item['quantity'] . ' beli + ' . $item['bonus_quantity'] . ' bonus gratis)'
+                        : 'Penjualan';
 
                     StockLog::create([
                         'kode_produk' =>
                             $product->kode_produk,
 
-                        'user_id' =>
-                            auth()->id(),
+                        'username' =>
+                            auth()->user()->username,
 
                         'type' =>
                             'out',
 
                         'quantity' =>
-                            $item['quantity'],
+                            $totalDeduct,
 
                         'reference_type' =>
                             'sale',
@@ -390,7 +413,7 @@ class SaleController extends Controller
                             $sale->id,
 
                         'note' =>
-                            'Penjualan',
+                            $logNote,
                     ]);
                 }
 
@@ -458,6 +481,12 @@ class SaleController extends Controller
                 'min:1',
             ],
 
+            'items.*.bonus_quantity' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
+
             'note' => [
                 'nullable',
                 'string',
@@ -498,7 +527,7 @@ class SaleController extends Controller
                 $draft->details()->delete();
             } else {
                 $draft = DraftSale::create([
-                    'user_id' => auth()->id(),
+                    'username' => auth()->user()->username,
                     'note' => $request->input('note'),
                 ]);
             }
@@ -515,13 +544,17 @@ class SaleController extends Controller
             foreach ($validated['items'] as $item) {
                 $product = $products->get($item['kode_produk']);
 
-                DraftSaleDetail::create([
-                    'draft_sale_id' => $draft->id,
-                    'kode_produk' => $item['kode_produk'],
-                    'quantity' => (int) $item['quantity'],
+                $bonusQuantity = 0;
+                if ($product && $product->has_promo) {
+                    $bonusQuantity = intdiv((int) $item['quantity'], (int) $product->promo_min_qty) * (int) $product->promo_bonus_qty;
+                }
 
-                    
-                    'unit_price' => $product
+                DraftSaleDetail::create([
+                    'draft_sale_id'  => $draft->id,
+                    'kode_produk'    => $item['kode_produk'],
+                    'quantity'       => (int) $item['quantity'],
+                    'bonus_quantity' => $bonusQuantity,
+                    'unit_price'     => $product
                         ? (float) $product->selling_price
                         : 0,
                 ]);

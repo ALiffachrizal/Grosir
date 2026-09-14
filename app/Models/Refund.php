@@ -13,7 +13,7 @@ class Refund extends Model
     protected $fillable = [
         'sale_id',
         'kode_produk',
-        'user_id',
+        'username',
         'quantity',
         'unit_price',
         'date',
@@ -41,7 +41,7 @@ class Refund extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'username', 'username');
     }
 
     // ==================== ACCESSOR ====================

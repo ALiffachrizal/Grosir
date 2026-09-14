@@ -48,10 +48,16 @@
                         {{ $product->stock }} {{ $product->base_unit }}
                     </span>
                 </div>
-                <div class="flex justify-between py-2">
+                <div class="flex justify-between py-2 border-b border-gray-50">
                     <span class="text-gray-500">Stok Minimum</span>
                     <span class="font-medium text-gray-800">{{ $product->minimum_stock }} {{ $product->base_unit }}</span>
                 </div>
+                @if($product->has_promo)
+                <div class="flex justify-between py-2 border-b border-amber-100 bg-amber-50/50 px-2 rounded-lg">
+                    <span class="text-amber-700 font-medium">🎁 Promo Bonus</span>
+                    <span class="font-bold text-amber-800">{{ $product->promo_label }}</span>
+                </div>
+                @endif
             </div>
 
             {{-- Status --}}
